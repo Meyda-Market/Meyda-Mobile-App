@@ -1,0 +1,771 @@
+// ==========================================================
+// 🚀 ምዕራፍ 1: መእተዊ (Imports)
+// ==========================================================
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useContext, useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from "react-native";
+import { AuthContext } from "../../context/AuthContext";
+
+const { width } = Dimensions.get("window");
+const API_BASE_URL = "https://meyda-app.onrender.com";
+
+export default function ProductDetail() {
+  // ==========================================================
+  // 🚀 ምዕራፍ 2: መኽዘን ሓበሬታ (State Management)
+  // ==========================================================
+  const { id } = useLocalSearchParams();
+  const router = useRouter();
+  const { user } = useContext(AuthContext);
+
+  const [product, setProduct] = useState<any>(null);
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [showComments, setShowComments] = useState(false);
+  const [activeImgIndex, setActiveImgIndex] = useState(0);
+  const imgListRef = useRef<FlatList>(null);
+
+  // 💡 ማጂክ 2: ሓደስቲ መኽዘናት ን Save ን Report ን
+  const [isSaved, setIsSaved] = useState(false); // ልቢ ቀያሕ ንምግባር
+  const [showReportModal, setShowReportModal] = useState(false); // ሪፖርት ፖፕ-ኣፕ ንምኽፋት
+  const [reportReason, setReportReason] = useState("");
+
+  // ==========================================================
+  // 🚀 ምዕራፍ 3: ሓበሬታ ካብ ሰርቨር ምምጻእ
+  // ==========================================================
+  useEffect(() => {
+    fetchProductDetail();
+  }, [id]);
+
+  const fetchProductDetail = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/products`);
+      const data = await response.json();
+
+      const singleProduct = data.find(
+        (item: any) => String(item._id) === String(id),
+      );
+      setProduct(singleProduct);
+
+      // 💡 ማጂክ: ቅድሚ ሕጂ ሴቭ ጌርናዮ እንተኔርና ልቢ ብቐይሕ ክትጅምር
+      const myId = user?._id || user?.id;
+      if (myId && singleProduct?.savedBy?.includes(myId)) {
+        setIsSaved(true);
+      } else {
+        setIsSaved(false);
+      }
+
+      if (singleProduct) {
+        const others = data.filter(
+          (item: any) =>
+            item._id !== id &&
+            item.category === singleProduct.category &&
+            item.location === singleProduct.location,
+        );
+        setRelatedProducts(others);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("ጌጋ:", error);
+      setLoading(false);
+    }
+  };
+
+  const getImageUrl = (urlPath: string) => {
+    if (!urlPath) return "https://via.placeholder.com/400";
+    if (urlPath.startsWith("http")) return urlPath;
+    return `${API_BASE_URL}${urlPath.startsWith("/") ? "" : "/"}${urlPath}`;
+  };
+
+  const productImages =
+    product?.images && product.images.length > 0
+      ? product.images
+      : [product?.image || ""];
+
+  // ==========================================================
+  // 🚀 ምዕራፍ 4: ኣውቶማቲክ ስላይደር (Auto-play Carousel)
+  // ==========================================================
+  useEffect(() => {
+    if (productImages.length > 1) {
+      const interval = setInterval(() => {
+        setActiveImgIndex((prev) => {
+          const next = (prev + 1) % productImages.length;
+          try {
+            imgListRef.current?.scrollToIndex({ index: next, animated: true });
+          } catch (e) {}
+          return next;
+        });
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [productImages.length]);
+
+  // ==========================================================
+  // 🚀 ምዕራፍ 5: ሓደስቲ ማጂካት ናይ (Save, Share, Report, Call, Msg)
+  // ==========================================================
+
+  // 💡 ማጂክ: Save
+  const handleToggleSave = async () => {
+    if (!user) {
+      Alert.alert("መዘኻኸሪ", "ንብረት ሴቭ ንምግባር መጀመርታ ሎግ-ኢን ግበሩ!");
+      return;
+    }
+    const newSavedState = !isSaved;
+    setIsSaved(newSavedState); // ብኡንብኡ ኣብ ስክሪን ንቀይሮ (ቀይሕ ይኸውን)
+
+    try {
+      const myId = user._id || user.id;
+      const actionType = newSavedState ? "add" : "remove";
+      const token = await AsyncStorage.getItem("meydaToken");
+
+      await fetch(`${API_BASE_URL}/api/users/${myId}/save`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ productId: id, action: actionType }),
+      });
+    } catch (error) {
+      console.log("Save Error:", error);
+    }
+  };
+
+  // 💡 ማጂክ: Share
+  const handleShare = async () => {
+    try {
+      const productName = product?.title || product?.name || "Meyda Product";
+      const productPrice = product?.price ? `${product.price} Br` : "";
+      const appLink = `https://meyda-app.onrender.com/product/${id}`; // ናይ መጻኢ ዌብ ሊንክ
+
+      await Share.share({
+        message: `ርኣዮ እዚ ማራኺ ኣቕሓ ኣብ Meyda App!\n\n🛍️ ${productName}\n💰 ${productPrice}\n\nኣብዚ ክሊክ ጌርካ ርኣዮ:\n${appLink}`,
+      });
+    } catch (error) {
+      console.log("Share Error:", error);
+    }
+  };
+
+  // 💡 ማጂክ: Submit Report
+  const handleReportSubmit = () => {
+    if (!reportReason.trim()) {
+      Alert.alert("ጌጋ", "በጃኹም ምኽንያት ሪፖርትኹም ጽሓፉ።");
+      return;
+    }
+    // ኣብዚ ናብ ባክ-ኤንድ (API) ክስደድ ይኽእል እዩ
+    setShowReportModal(false);
+    setReportReason("");
+    Alert.alert("ዕዉት", "ሪፖርትኹም ብዓወት ናብ ኣድሚን ተላኢኹ ኣሎ። የቐንየልና!");
+  };
+
+  // መደወልን መልእኽትን
+  const handleCall = () => {
+    const phone = product?.phone || "+251900000000";
+    Linking.openURL(`tel:${phone}`);
+  };
+
+  const handleMessage = () => {
+    const sellerId = product?.sellerId || product?.vendorId || "unknown";
+    router.push({
+      pathname: `/chat/${sellerId}`,
+      params: {
+        name: product?.vendorName || "Meyda Vendor",
+        productId: product?._id,
+        productName: product?.title || product?.name,
+        productImage:
+          product?.images && product.images.length > 0
+            ? product.images[0]
+            : product?.image || "",
+        productPrice: product?.price,
+        prefillMsg: `ሰላም፣ ብዛዕባ እዚ ኣቕሓ (${product?.title || product?.name}) ክሓትት ደልየ ኔረ...`,
+      },
+    } as any);
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen
+          options={{
+            title: "ይጽዓን ኣሎ...",
+            headerStyle: { backgroundColor: "#029eff" },
+            headerTintColor: "#fff",
+          }}
+        />
+        <View style={styles.skeletonImage} />
+        <View style={{ padding: 20 }}>
+          <View style={styles.skeletonTitle} />
+          <View style={styles.skeletonPrice} />
+          <View style={styles.skeletonDesc} />
+          <View style={styles.skeletonDesc} />
+        </View>
+      </View>
+    );
+  }
+
+  if (!product)
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>ኣቕሓ ኣይተረኽበን</Text>
+      </View>
+    );
+
+  // ==========================================================
+  // 🚀 ምዕራፍ 6: ጠቕላላ ስክሪን (Main Render)
+  // ==========================================================
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* 💡 1. ጽኑዕ ሰማያዊ ሄደር (Fixed Header - New Pro Functions Added) */}
+      <Stack.Screen
+        options={{
+          title: "ዝርዝር ኣቕሓ",
+          headerStyle: { backgroundColor: "#029eff" },
+          headerTintColor: "#fff",
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{ marginRight: 20 }}
+            >
+              <Ionicons name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+          ),
+          headerRight: () => (
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              {/* 💡 Save (Heart) Button */}
+              <TouchableOpacity
+                style={{ marginRight: 15 }}
+                onPress={handleToggleSave}
+              >
+                <Ionicons
+                  name={isSaved ? "heart" : "heart-outline"}
+                  size={24}
+                  color={isSaved ? "#FF3B30" : "#fff"}
+                />
+              </TouchableOpacity>
+              {/* 💡 Share Button */}
+              <TouchableOpacity
+                style={{ marginRight: 15 }}
+                onPress={handleShare}
+              >
+                <Ionicons name="share-social" size={22} color="#fff" />
+              </TouchableOpacity>
+              {/* 💡 Report Button */}
+              <TouchableOpacity onPress={() => setShowReportModal(true)}>
+                <Ionicons name="flag-outline" size={22} color="#FF3B30" />
+              </TouchableOpacity>
+            </View>
+          ),
+        }}
+      />
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        <View style={styles.imageHeader}>
+          <FlatList
+            ref={imgListRef}
+            data={productImages}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item, index) => index.toString()}
+            onMomentumScrollEnd={(e) => {
+              const index = Math.round(e.nativeEvent.contentOffset.x / width);
+              setActiveImgIndex(index);
+            }}
+            renderItem={({ item }) => (
+              <View style={styles.imageWrapper}>
+                <Image
+                  source={{ uri: getImageUrl(item) }}
+                  style={styles.mainImage}
+                />
+              </View>
+            )}
+          />
+          <View style={styles.imageCounterBadge}>
+            <Text style={styles.imageCounterText}>
+              {activeImgIndex + 1} / {productImages.length}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.detailsContainer}>
+          <Text style={styles.productPrice}>{product.price} Br</Text>
+          <Text style={styles.productTitle}>
+            {product.name || product.title}
+          </Text>
+
+          <View style={styles.metaRow}>
+            <Text style={styles.metaText}>
+              📍 {product.location || "Tigray, Mekelle"}
+            </Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>ሓዱሽ</Text>
+            </View>
+          </View>
+
+          {(product.ram ||
+            product.storage ||
+            product.category === "mobile" ||
+            product.category === "laptop") && (
+            <View style={styles.specsBox}>
+              <Text style={styles.specTitle}>ቴክኒካዊ ሓበሬታ (Specs):</Text>
+              <View style={styles.specGrid}>
+                <View style={styles.specItem}>
+                  <Ionicons
+                    name="hardware-chip-outline"
+                    size={14}
+                    color="#029eff"
+                  />
+                  <Text style={styles.specText}>
+                    RAM: {product.ram || "8 GB"}
+                  </Text>
+                </View>
+                <View style={styles.specItem}>
+                  <Ionicons name="save-outline" size={14} color="#029eff" />
+                  <Text style={styles.specText}>
+                    Storage: {product.storage || "256 GB"}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.vendorBox}
+            onPress={() => {
+              router.push(
+                `/profile/${product.sellerId || product.vendorId}` as any,
+              );
+            }}
+          >
+            <Image
+              source={{
+                uri: product.vendorProfile || "https://via.placeholder.com/50",
+              }}
+              style={styles.vendorPic}
+            />
+            <View style={styles.vendorInfo}>
+              <Text style={styles.vendorName}>
+                {product.vendorName || "Meyda Vendor"}
+              </Text>
+              <Text style={styles.vendorStatus}>🟢 ኦንላይን ኣሎ</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#029eff" />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <Text style={styles.sectionTitle}>መግለጺ (Description)</Text>
+          <Text style={styles.description}>
+            {product.description ||
+              "ናይዚ ኣቕሓ ዝርዝር መግለጺ ኣብዚ ይኣቱ። ጽቡቕ ጽሬት ዘለዎ ምህርቲ እዩ።"}
+          </Text>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.commentToggleBtn}
+            onPress={() => setShowComments(!showComments)}
+          >
+            <Text style={styles.sectionTitle}>
+              ርእይቶታት (Comments) {showComments ? "▲" : "▼"}
+            </Text>
+          </TouchableOpacity>
+
+          {showComments && (
+            <View style={styles.commentBox}>
+              <Image
+                source={{ uri: "https://via.placeholder.com/40" }}
+                style={styles.commenterPic}
+              />
+              <View style={styles.commentContent}>
+                <Text style={styles.commenterName}>ኣማኑኤል ተስፋይ</Text>
+                <Text style={styles.commentText}>
+                  ዋጋ ናይ መወዳእታ ክንደይ እዩ? ሎሚ ክወስዶ ደልየ ኔረ።
+                </Text>
+                <TouchableOpacity>
+                  <Text style={styles.replyText}>↪️ ሪፕለይ (Reply)</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          <View style={styles.divider} />
+
+          <Text style={styles.sectionTitle}>ተመሳሰልቲ ምህርትታት</Text>
+          {relatedProducts.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginHorizontal: -15, paddingHorizontal: 15 }}
+            >
+              {relatedProducts.slice(0, 10).map((simProduct: any) => (
+                <TouchableOpacity
+                  key={simProduct._id}
+                  style={styles.similarCard}
+                  onPress={() =>
+                    router.push(`/product/${simProduct._id}` as any)
+                  }
+                >
+                  <Image
+                    source={{
+                      uri: getImageUrl(
+                        simProduct.image ||
+                          (simProduct.images && simProduct.images[0]),
+                      ),
+                    }}
+                    style={styles.similarImg}
+                  />
+                  <Text style={styles.similarPrice} numberOfLines={1}>
+                    {simProduct.price} Br
+                  </Text>
+                  <Text style={styles.similarName} numberOfLines={1}>
+                    {simProduct.name || simProduct.title}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            <Text style={styles.noRelatedText}>ኣብዚ ቦታ ተመሳሳሊ ኣቕሓ የለን።</Text>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* FABs (Call & Msg) */}
+      <View style={styles.floatingActionContainer}>
+        <TouchableOpacity style={styles.floatCallBtn} onPress={handleCall}>
+          <Ionicons name="call" size={18} color="#fff" />
+          <Text style={styles.floatBtnText}>ደውል</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.floatMsgBtn} onPress={handleMessage}>
+          <Ionicons name="chatbubble-ellipses" size={18} color="#fff" />
+          <Text style={styles.floatBtnText}>መልእኽቲ</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 💡 ሓዱሽ ሪፖርት ፖፕ-ኣፕ (Report Modal) */}
+      <Modal visible={showReportModal} transparent={true} animationType="fade">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.reportModalOverlay}
+        >
+          <View style={styles.reportModalContent}>
+            <Text style={styles.reportTitle}>🚩 ኣቕሓ ሪፖርት ግበር</Text>
+            <TextInput
+              style={styles.reportInput}
+              placeholder="ስለምንታይ ሪፖርት ትገብሮ ኣለኻ? ምኽንያትካ ጽሓፍ..."
+              multiline
+              value={reportReason}
+              onChangeText={setReportReason}
+            />
+            <View style={styles.reportActions}>
+              <TouchableOpacity
+                style={styles.reportCancelBtn}
+                onPress={() => {
+                  setShowReportModal(false);
+                  setReportReason("");
+                }}
+              >
+                <Text style={styles.reportCancelText}>ኣቋርጽ</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.reportSubmitBtn}
+                onPress={handleReportSubmit}
+              >
+                <Text style={styles.reportSubmitText}>ስደድ (Submit)</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
+// ==========================================================
+// 🚀 ምዕራፍ 7: ዲዛይን (Styles)
+// ==========================================================
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#f5f8fa" },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  // Skeleton Loading
+  skeletonImage: { width: "100%", height: 280, backgroundColor: "#e1e4e8" },
+  skeletonTitle: {
+    width: "70%",
+    height: 25,
+    backgroundColor: "#e1e4e8",
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  skeletonPrice: {
+    width: "40%",
+    height: 20,
+    backgroundColor: "#e1e4e8",
+    borderRadius: 5,
+    marginBottom: 15,
+  },
+  skeletonDesc: {
+    width: "100%",
+    height: 12,
+    backgroundColor: "#e1e4e8",
+    borderRadius: 5,
+    marginBottom: 8,
+  },
+
+  imageHeader: { width: "100%", height: 280, backgroundColor: "#fff" },
+  imageWrapper: {
+    width: width,
+    height: 280,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingBottom: 20,
+  },
+  mainImage: { width: "100%", height: "100%", resizeMode: "contain" },
+  imageCounterBadge: {
+    position: "absolute",
+    bottom: 30,
+    right: 15,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  imageCounterText: { color: "#fff", fontSize: 11, fontWeight: "bold" },
+
+  detailsContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    marginTop: -20,
+    padding: 15,
+    elevation: 5,
+  },
+  productPrice: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#029eff",
+    marginBottom: 2,
+  },
+  productTitle: {
+    fontSize: 17,
+    fontWeight: "bold",
+    color: "#222",
+    marginBottom: 8,
+  },
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  metaText: { fontSize: 12, color: "#666" },
+  badge: {
+    backgroundColor: "#E8F4FD",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  badgeText: { color: "#029eff", fontSize: 11, fontWeight: "bold" },
+  divider: { height: 1, backgroundColor: "#f0f0f0", marginVertical: 10 },
+
+  specsBox: {
+    backgroundColor: "#f9f9f9",
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  specTitle: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: "#555",
+    marginBottom: 6,
+  },
+  specGrid: { flexDirection: "row", gap: 15 },
+  specItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  specText: { fontSize: 12, color: "#333", fontWeight: "bold" },
+
+  vendorBox: { flexDirection: "row", alignItems: "center" },
+  vendorPic: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
+  vendorInfo: { flex: 1 },
+  vendorName: { fontSize: 14, fontWeight: "bold", color: "#333" },
+  vendorStatus: { fontSize: 11, color: "green", marginTop: 2 },
+
+  sectionTitle: { fontSize: 16, fontWeight: "bold", color: "#333" },
+  description: { fontSize: 13, color: "#555", lineHeight: 20, marginTop: 6 },
+
+  commentToggleBtn: {
+    paddingVertical: 2,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  commentBox: { flexDirection: "row", marginTop: 10 },
+  commenterPic: { width: 34, height: 34, borderRadius: 17, marginRight: 10 },
+  commentContent: {
+    flex: 1,
+    backgroundColor: "#f9f9f9",
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  commenterName: {
+    fontWeight: "bold",
+    color: "#029eff",
+    marginBottom: 2,
+    fontSize: 12,
+  },
+  commentText: { color: "#444", marginBottom: 3, fontSize: 13 },
+  replyText: { fontSize: 11, color: "#666", fontWeight: "bold", marginTop: 4 },
+
+  similarCard: {
+    width: 130,
+    marginRight: 15,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 8,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    marginBottom: 10,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  similarImg: {
+    width: "100%",
+    height: 90,
+    borderRadius: 8,
+    resizeMode: "cover",
+    marginBottom: 5,
+  },
+  similarPrice: { fontWeight: "bold", color: "#029eff", fontSize: 13 },
+  similarName: { color: "#333", fontSize: 12 },
+  noRelatedText: {
+    color: "#999",
+    marginTop: 10,
+    fontStyle: "italic",
+    fontSize: 13,
+  },
+
+  floatingActionContainer: {
+    position: "absolute",
+    bottom: Platform.OS === "ios" ? 35 : 30,
+    left: 20,
+    right: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 15,
+    zIndex: 100,
+  },
+  floatCallBtn: {
+    flex: 1,
+    backgroundColor: "#2ecc71",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderRadius: 20,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  floatMsgBtn: {
+    flex: 1,
+    backgroundColor: "#029eff",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderRadius: 20,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  floatBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+    marginLeft: 6,
+  },
+
+  // 💡 ሓዱሽ ሪፖርት ፖፕ-ኣፕ (Report Modal Styles)
+  reportModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  reportModalContent: {
+    backgroundColor: "#fff",
+    width: "85%",
+    borderRadius: 15,
+    padding: 20,
+    elevation: 10,
+  },
+  reportTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 15,
+  },
+  reportInput: {
+    backgroundColor: "#f0f2f5",
+    borderRadius: 10,
+    padding: 15,
+    minHeight: 100,
+    textAlignVertical: "top",
+    fontSize: 15,
+    marginBottom: 15,
+  },
+  reportActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 15,
+  },
+  reportCancelBtn: { padding: 10 },
+  reportCancelText: { color: "#777", fontWeight: "bold", fontSize: 15 },
+  reportSubmitBtn: {
+    backgroundColor: "#FF3B30",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  reportSubmitText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
+});
