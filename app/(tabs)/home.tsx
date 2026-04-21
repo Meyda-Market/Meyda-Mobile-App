@@ -32,10 +32,10 @@ import {
   View,
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
-
+import { ThemeContext } from "../../context/ThemeContext";
 const { width: screenWidth } = Dimensions.get("window");
 const API_BASE_URL = "https://meyda-app.onrender.com";
-const HEADER_HEIGHT = 50; // 👈 ጸቢባ ኣላ
+const HEADER_HEIGHT = 50;
 
 const CAROUSEL_ITEM_WIDTH = screenWidth * 0.82;
 const CAROUSEL_SPACING = (screenWidth - CAROUSEL_ITEM_WIDTH) / 2;
@@ -48,9 +48,8 @@ const getImageUrl = (imgStr: string) => {
 };
 
 // ==========================================================
-// 🚀 ሓዱሽ ምዕራፍ: ርእሳ ዝኸኣለት "Ping-Pong" ባነር (ProCarousel)
+// 🚀 ምዕራፍ 2: ርእሳ ዝኸኣለት "Ping-Pong" ባነር (ProCarousel)
 // ==========================================================
-// 💡 ማጂክ: እዚኣ ርእሳ ስለ ዝኸኣለት ነቲ "ህልም ውልዕ" ትብል ጌጋ 100% ኣጥፊኣቶ ኣላ!
 const ProCarousel = ({ proProducts, router }: any) => {
   const carouselRef = useRef<FlatList>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -110,7 +109,8 @@ const ProCarousel = ({ proProducts, router }: any) => {
                 {item.title}
               </Text>
               <Text style={styles.carouselLocation}>
-                <Ionicons name="location" size={12} /> {item.location}
+                <Ionicons name="location" size={12} color="#eee" />{" "}
+                {item.location}
               </Text>
             </View>
             <View style={styles.adPriceBadge}>
@@ -159,7 +159,7 @@ const ProCarousel = ({ proProducts, router }: any) => {
 };
 
 // ==========================================================
-// 🚀 ምዕራፍ 2: ቀወምቲ ሓበሬታታት (Constants)
+// 🚀 ምዕራፍ 3: ቀወምቲ ሓበሬታታት (Constants)
 // ==========================================================
 const categoriesData = [
   { id: "all", name: "All" },
@@ -201,9 +201,11 @@ const locationsData = [
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useContext(AuthContext);
+  // 💡 ዳርክ ሞድ ሓንጎል ካብ ThemeContext ይጽዋዕ
+  const { isDarkMode, toggleTheme } = useContext(ThemeContext);
 
   // ==========================================================
-  // 🚀 ምዕራፍ 3: መኽዘን ኩነታት (State Management)
+  // 🚀 ምዕራፍ 4: መኽዘን ኩነታት (State Management)
   // ==========================================================
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
@@ -232,7 +234,7 @@ export default function HomeScreen() {
   });
 
   // ==========================================================
-  // 🚀 ምዕራፍ 4: ዳታ ካብ ሰርቨር ምጽዋዕ (Fetch API)
+  // 🚀 ምዕራፍ 5: ዳታ ካብ ሰርቨር ምጽዋዕ (Fetch API)
   // ==========================================================
   useFocusEffect(
     useCallback(() => {
@@ -294,7 +296,7 @@ export default function HomeScreen() {
   }, []);
 
   // ==========================================================
-  // 🚀 ምዕራፍ 5: ናይ ልቢ (Save)
+  // 🚀 ምዕራፍ 6: ናይ ልቢ (Save) & ንብረት ምድምሳስ (Delete)
   // ==========================================================
   const handleToggleSave = async (
     productId: string,
@@ -343,9 +345,6 @@ export default function HomeScreen() {
     } catch (error) {}
   };
 
-  // ==========================================================
-  // 🚀 ምዕራፍ 6: ንብረት ምድምሳስ (Delete)
-  // ==========================================================
   const handleDeleteProduct = (productId: string, productTitle: string) => {
     Alert.alert(
       "መጠንቀቕታ!",
@@ -385,7 +384,7 @@ export default function HomeScreen() {
   };
 
   // ==========================================================
-  // 🚀 ምዕራፍ 7: መጻረዪ & ሓዱሽ ማጂክ Ad Injection
+  // 🚀 ምዕራፍ 7: መጻረዪ & ማጂክ Ad Injection
   // ==========================================================
   useFocusEffect(
     useCallback(() => {
@@ -408,7 +407,6 @@ export default function HomeScreen() {
     }, [searchQuery, selectedCategory, locationFilter, allProducts]),
   );
 
-  // 💡 ማጂክ: ፐርፎርማንስ ንምዕባይ `useMemo` ተጠቒምና ኣለና (ስክሪን ሪፍሬሽ ከይገብር)
   const mixedProductsData = useMemo(() => {
     let mixed: any[] = [];
     let proIdx = 0;
@@ -429,27 +427,36 @@ export default function HomeScreen() {
   }, [filteredProducts, proProducts]);
 
   // ==========================================================
-  // 🚀 ምዕራፍ 8: ዲዛይን ላዕለዋይ ክፋል
+  // 🚀 ምዕራፍ 8: ዲዛይን ላዕለዋይ ክፋል (Header & Categories)
   // ==========================================================
   const renderHeader = () => (
-    <View style={styles.headerSection}>
+    <View
+      style={[
+        styles.headerSection,
+        // 💡 ሄደር ናብ ዳርክ ሞድ ይቀየር
+        { backgroundColor: isDarkMode ? "#121212" : "#FFFFFF" },
+      ]}
+    >
       <View style={{ height: HEADER_HEIGHT + 25 }} />
 
-      {/* 💡 ማጂክ: እታ ሓዳስ ርእሳ ዝኸኣለት ኮምፖነንት ኣብዚ ኣትያ ኣላ */}
-      {proProducts.length > 0 && (
+      {proProducts.length > 0 ? (
         <ProCarousel proProducts={proProducts} router={router} />
-      )}
+      ) : null}
 
-      <View style={styles.categoriesContainer}>
+      <View
+        style={[
+          styles.categoriesContainer,
+          // 💡 ናይ ካተጎሪ ባይታ ናብ ዳርክ ሞድ ይቀየር
+          { backgroundColor: isDarkMode ? "#121212" : "#FFFFFF" },
+        ]}
+      >
         <FlatList
           ref={categoryListRef}
           data={categoriesData}
           keyExtractor={(item) => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
-          // 💡 ማጂክ 1: ንኹለን ካታጎሪታት ብሓንሳብ ኣንቢቡ ስፍሓተን (Width) ምእንቲ ክፈልጥ
           initialNumToRender={20}
-          // 💡 ማጂክ 2: እንተደኣ ጌጋ ኣጋጢሙዎ እንደገና ክዕሪ (Fallback)
           onScrollToIndexFailed={(info) => {
             setTimeout(() => {
               categoryListRef.current?.scrollToIndex({
@@ -463,28 +470,37 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={[
                 styles.catPill,
-                selectedCategory === item.id && styles.catPillActive,
+                // 💡 ማጂክ: Active እንተኾይና ሰማያዊት ትኸውን (styles.catPillActive)፡ እንተዘይኮይና ናብ ዳርክ ሞድ ትቕየር
+                selectedCategory === item.id
+                  ? styles.catPillActive
+                  : {
+                      backgroundColor: isDarkMode ? "#333333" : "#FFFFFF",
+                      borderColor: isDarkMode ? "#444" : "#eee",
+                    },
               ]}
               onPress={() => {
                 setSelectedCategory(item.id);
-                // 💡 ማጂክ 3: ሰማያዊ ሕብሪ ምስ ሓዘት ብልስሉስ ንማእከል ክትስሕብ
                 setTimeout(() => {
                   try {
                     categoryListRef.current?.scrollToIndex({
                       index: index,
                       animated: true,
-                      viewPosition: 0.5, // ንማእከል ስክሪን
+                      viewPosition: 0.5,
                     });
                   } catch (e) {}
                 }, 100);
               }}
             >
               <Text
-                style={
+                style={[
                   selectedCategory === item.id
                     ? styles.catTextActive
-                    : styles.catText
-                }
+                    : styles.catText,
+                  // 💡 ማጂክ: Active እንተዘይኮይና ጥራሕ ዳርክ ሞድ ትለብስ (ጻዕዳ ወይ ጸሊም ጽሑፍ)
+                  selectedCategory !== item.id && {
+                    color: isDarkMode ? "#FFFFFF" : "#333333",
+                  },
+                ]}
               >
                 {item.name}
               </Text>
@@ -512,11 +528,20 @@ export default function HomeScreen() {
 
     return (
       <TouchableOpacity
-        style={styles.productCard}
+        style={[
+          styles.productCard,
+          // 💡 ካርድ ዳርክ ሞድ ትለብስ (ፈኲስ ጸሊም)
+          { backgroundColor: isDarkMode ? "#1E1E1E" : "#FFFFFF" },
+        ]}
         activeOpacity={0.8}
         onPress={() => router.push(`/product/${item._id}` as any)}
       >
-        <View style={styles.imageContainer}>
+        <View
+          style={[
+            styles.imageContainer,
+            { backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa" },
+          ]}
+        >
           {item.images && item.images.length > 0 ? (
             <Image
               source={{ uri: getImageUrl(item.images[0]) }}
@@ -524,7 +549,11 @@ export default function HomeScreen() {
             />
           ) : (
             <View style={styles.placeholderImg}>
-              <FontAwesome5 name={item.icon || "box"} size={40} color="#999" />
+              <FontAwesome5
+                name={item.icon || "box"}
+                size={40}
+                color={isDarkMode ? "#666" : "#999"}
+              />
             </View>
           )}
 
@@ -583,11 +612,32 @@ export default function HomeScreen() {
           ) : (
             <Text style={styles.priceTextGrid}>{item.price} Br</Text>
           )}
-          <Text style={styles.titleTextGrid} numberOfLines={1}>
+
+          {/* 💡 ኣርእስቲ (Title) ኣብ ዳርክ ሞድ ጻዕዳ ይኸውን */}
+          <Text
+            style={[
+              styles.titleTextGrid,
+              { color: isDarkMode ? "#FFFFFF" : "#333333" },
+            ]}
+            numberOfLines={1}
+          >
             {item.title}
           </Text>
-          <Text style={styles.locationTextGrid} numberOfLines={1}>
-            <Ionicons name="location" size={10} /> {item.location}
+
+          {/* 💡 ቦታ (Location) ኣብ ዳርክ ሞድ ሓሙኽሻይ ይኸውን */}
+          <Text
+            style={[
+              styles.locationTextGrid,
+              { color: isDarkMode ? "#CCCCCC" : "#888888" },
+            ]}
+            numberOfLines={1}
+          >
+            <Ionicons
+              name="location"
+              size={10}
+              color={isDarkMode ? "#CCCCCC" : "#888888"}
+            />{" "}
+            {item.location}
           </Text>
         </View>
       </TouchableOpacity>
@@ -598,14 +648,26 @@ export default function HomeScreen() {
   // 🚀 ምዕራፍ 10: ጠቕላላ ስክሪን (Main Render)
   // ==========================================================
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        // 💡 ዋና ድሕረ-ባይታ ፔጅ ዳርክ ሞድ ይለብስ
+        { backgroundColor: isDarkMode ? "#121212" : "#f5f8fa" },
+      ]}
+    >
       <Animated.View
         style={[
           styles.animatedHeaderContainer,
           { transform: [{ translateY }] },
         ]}
       >
-        <View style={styles.topNav}>
+        <View
+          style={[
+            styles.topNav,
+            // 💡 ላዕለዋይ ናሕሲ (Top Nav) ዳርክ ሞድ ይለብስ
+            { backgroundColor: isDarkMode ? "#121212" : "#FFFFFF" },
+          ]}
+        >
           <TouchableOpacity
             style={styles.regionBtn}
             onPress={() => setShowRegionModal(true)}
@@ -620,12 +682,21 @@ export default function HomeScreen() {
             <Ionicons
               name="search"
               size={18}
-              color="#999"
+              // 💡 ኣይኮን ናይ ሰርች ኣብ ጸልማት ይበርህ
+              color={isDarkMode ? "#AAAAAA" : "#999999"}
               style={styles.searchIcon}
             />
+            {/* 💡 ማጂክ: Search Bar ድሕረ-ባይታኡን ጽሑፉን 100% ጽፉፍ ኮይኑ ተቐይሩ ኣሎ */}
             <TextInput
-              style={styles.searchInput}
-              placeholder="ድለይ (Search)..."
+              style={[
+                styles.searchInput,
+                {
+                  backgroundColor: isDarkMode ? "#1E1E1E" : "#f0f2f5",
+                  color: isDarkMode ? "#FFFFFF" : "#000000",
+                },
+              ]}
+              placeholder="ድለ (Search)..."
+              placeholderTextColor={isDarkMode ? "#888888" : "#999999"}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -639,8 +710,19 @@ export default function HomeScreen() {
               <FontAwesome5 name="shield-alt" size={16} color="#fff" />
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.themeToggle}>
-            <Ionicons name="moon" size={20} color="#029eff" />
+
+          <TouchableOpacity
+            style={[
+              styles.themeToggle,
+              { backgroundColor: isDarkMode ? "#333" : "#e6f4f1" },
+            ]}
+            onPress={toggleTheme}
+          >
+            <Ionicons
+              name={isDarkMode ? "sunny" : "moon"}
+              size={20}
+              color={isDarkMode ? "#FFD700" : "#029eff"}
+            />
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -648,7 +730,9 @@ export default function HomeScreen() {
       {loading ? (
         <View style={styles.loadingBox}>
           <ActivityIndicator size="large" color="#029eff" />
-          <Text style={{ marginTop: 10, color: "#666" }}>ዕዳጋ ይዳሎ ኣሎ...</Text>
+          <Text style={{ marginTop: 10, color: isDarkMode ? "#AAA" : "#666" }}>
+            ዕዳጋ ይዳሎ ኣሎ...
+          </Text>
         </View>
       ) : (
         <Animated.FlatList
@@ -669,13 +753,20 @@ export default function HomeScreen() {
               refreshing={refreshing}
               onRefresh={onRefresh}
               colors={["#029eff"]}
+              tintColor={isDarkMode ? "#029eff" : undefined}
               progressViewOffset={HEADER_HEIGHT + 10}
             />
           }
           ListEmptyComponent={() => (
             <View style={{ alignItems: "center", marginTop: 50 }}>
-              <Ionicons name="search" size={50} color="#ccc" />
-              <Text style={{ color: "#888", marginTop: 10 }}>
+              <Ionicons
+                name="search"
+                size={50}
+                color={isDarkMode ? "#444" : "#ccc"}
+              />
+              <Text
+                style={{ color: isDarkMode ? "#AAA" : "#888", marginTop: 10 }}
+              >
                 ኣብዚ ቦታን ምድብን ዝተመዝገበ ንብረት የለን።
               </Text>
             </View>
@@ -683,11 +774,24 @@ export default function HomeScreen() {
         />
       )}
 
-      {/* ፖፕ-ኣፕታት */}
+      {/* ==========================================================
+          🚀 ፖፕ-ኣፕታት (Modal) 
+          💡 ማጂክ: ንቦነስ (Bonus) ኢለ ነዚ Modal እውን ዳርክ ሞድ ኣልቢሰዮ ኣለኹ 
+          ========================================================== */}
       <Modal visible={showRegionModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { borderColor: isDarkMode ? "#333" : "#eee" },
+              ]}
+            >
               {activeRegionStep ? (
                 <TouchableOpacity onPress={() => setActiveRegionStep(null)}>
                   <Text style={{ color: "#029eff", fontWeight: "bold" }}>
@@ -697,7 +801,12 @@ export default function HomeScreen() {
               ) : (
                 <View style={{ width: 60 }} />
               )}
-              <Text style={styles.modalTitle}>
+              <Text
+                style={[
+                  styles.modalTitle,
+                  { color: isDarkMode ? "#FFF" : "#333" },
+                ]}
+              >
                 {activeRegionStep ? activeRegionStep : "ክልል ምረጽ"}
               </Text>
               <TouchableOpacity
@@ -706,13 +815,20 @@ export default function HomeScreen() {
                   setActiveRegionStep(null);
                 }}
               >
-                <Ionicons name="close" size={24} color="#999" />
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={isDarkMode ? "#AAA" : "#999"}
+                />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               {!activeRegionStep ? (
                 <TouchableOpacity
-                  style={styles.listItem}
+                  style={[
+                    styles.listItem,
+                    { borderColor: isDarkMode ? "#333" : "#f0f0f0" },
+                  ]}
                   onPress={() => {
                     setLocationFilter("all");
                     setLocationDisplayName("Region");
@@ -733,7 +849,10 @@ export default function HomeScreen() {
               {activeRegionStep ? (
                 <>
                   <TouchableOpacity
-                    style={styles.listItem}
+                    style={[
+                      styles.listItem,
+                      { borderColor: isDarkMode ? "#333" : "#f0f0f0" },
+                    ]}
                     onPress={() => {
                       setLocationFilter(activeRegionStep);
                       setLocationDisplayName(activeRegionStep);
@@ -755,7 +874,10 @@ export default function HomeScreen() {
                     ?.cities.map((c, idx) => (
                       <TouchableOpacity
                         key={idx}
-                        style={styles.listItem}
+                        style={[
+                          styles.listItem,
+                          { borderColor: isDarkMode ? "#333" : "#f0f0f0" },
+                        ]}
                         onPress={() => {
                           setLocationFilter(`${activeRegionStep}, ${c}`);
                           setLocationDisplayName(c);
@@ -763,7 +885,14 @@ export default function HomeScreen() {
                           setActiveRegionStep(null);
                         }}
                       >
-                        <Text style={styles.listText}>{c}</Text>
+                        <Text
+                          style={[
+                            styles.listText,
+                            { color: isDarkMode ? "#CCC" : "#444" },
+                          ]}
+                        >
+                          {c}
+                        </Text>
                       </TouchableOpacity>
                     ))}
                 </>
@@ -771,7 +900,10 @@ export default function HomeScreen() {
                 locationsData.map((loc, idx) => (
                   <TouchableOpacity
                     key={idx}
-                    style={styles.listItem}
+                    style={[
+                      styles.listItem,
+                      { borderColor: isDarkMode ? "#333" : "#f0f0f0" },
+                    ]}
                     onPress={() => {
                       if (loc.cities.length > 0)
                         setActiveRegionStep(loc.region);
@@ -782,9 +914,20 @@ export default function HomeScreen() {
                       }
                     }}
                   >
-                    <Text style={styles.listText}>{loc.region}</Text>
+                    <Text
+                      style={[
+                        styles.listText,
+                        { color: isDarkMode ? "#CCC" : "#444" },
+                      ]}
+                    >
+                      {loc.region}
+                    </Text>
                     {loc.cities.length > 0 ? (
-                      <Ionicons name="chevron-forward" size={18} color="#999" />
+                      <Ionicons
+                        name="chevron-forward"
+                        size={18}
+                        color={isDarkMode ? "#666" : "#999"}
+                      />
                     ) : null}
                   </TouchableOpacity>
                 ))
@@ -815,7 +958,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
-    height: HEADER_HEIGHT,
     backgroundColor: "#fff",
     elevation: 4,
     shadowColor: "#000",
@@ -878,9 +1020,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
     position: "relative",
-    backgroundColor: "#fff",
+    backgroundColor: "#1E1E1E", // 💡 ንካሩሰል ዳርክ ባይታ
   },
-  carouselImage: { width: "100%", height: "100%", resizeMode: "contain" },
+  carouselImage: { width: "100%", height: "100%", resizeMode: "cover" },
   carouselOverlay: {
     position: "absolute",
     width: "100%",
@@ -900,7 +1042,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "rgba(0,0,0,0.15)",
+    backgroundColor: "rgba(150,150,150,0.5)",
     marginHorizontal: 4,
   },
   dotActive: {

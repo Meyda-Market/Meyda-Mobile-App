@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
+import { ThemeContext } from "../../context/ThemeContext"; // 💡 ሓዱሽ: ዳርክ ሞድ ሓንጎል መጸውዒ
 
 const API_BASE_URL = "https://meyda-app.onrender.com";
 
@@ -36,6 +37,8 @@ export default function ChatScreen() {
 
   const router = useRouter();
   const { user } = useContext(AuthContext);
+  // 💡 ማጂክ: ዳርክ ሞድ ሓንጎል ንጽውዕ
+  const { isDarkMode } = useContext(ThemeContext);
 
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
@@ -88,7 +91,6 @@ export default function ChatScreen() {
     }
   };
 
-  // 💡 ማጂክ: ሓዱሽ ናይ መልእኽቲ መላእኺ (ስእልን ሊንክን ሒዙ ዝኸይድ)
   const sendMessage = async () => {
     if (!inputText.trim() || !user) return;
     const myId = user._id || user.id;
@@ -146,15 +148,24 @@ export default function ChatScreen() {
       <View
         style={[
           styles.messageBubble,
-          isMe ? styles.myMessage : styles.theirMessage,
+          isMe
+            ? styles.myMessage
+            : [
+                styles.theirMessage,
+                { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+              ],
         ]}
       >
-        {/* 💡 ማጂክ: ኣብ ውሽጢ ዕላል ንእሽቶ ካርድ ናይቲ ኣቕሓ ትረአ */}
         {item.productImage && (
           <TouchableOpacity
             style={[
               styles.msgProductCard,
-              isMe ? styles.myMsgCard : styles.theirMsgCard,
+              isMe
+                ? styles.myMsgCard
+                : [
+                    styles.theirMsgCard,
+                    { backgroundColor: isDarkMode ? "#2A2A2A" : "#f0f2f5" },
+                  ],
             ]}
             onPress={() => router.push(`/product/${item.productId}` as any)}
           >
@@ -166,7 +177,12 @@ export default function ChatScreen() {
               <Text
                 style={[
                   styles.msgProductName,
-                  isMe ? styles.myMessageText : styles.theirMessageText,
+                  isMe
+                    ? styles.myMessageText
+                    : [
+                        styles.theirMessageText,
+                        { color: isDarkMode ? "#FFF" : "#333" },
+                      ],
                 ]}
                 numberOfLines={1}
               >
@@ -182,12 +198,28 @@ export default function ChatScreen() {
         <Text
           style={[
             styles.messageText,
-            isMe ? styles.myMessageText : styles.theirMessageText,
+            isMe
+              ? styles.myMessageText
+              : [
+                  styles.theirMessageText,
+                  { color: isDarkMode ? "#FFF" : "#333" },
+                ],
           ]}
         >
           {item.text}
         </Text>
-        <Text style={styles.timeText}>
+        <Text
+          style={[
+            styles.timeText,
+            {
+              color: isMe
+                ? "rgba(255,255,255,0.7)"
+                : isDarkMode
+                  ? "rgba(255,255,255,0.5)"
+                  : "rgba(0,0,0,0.4)",
+            },
+          ]}
+        >
           {new Date(item.createdAt).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -201,11 +233,21 @@ export default function ChatScreen() {
   // 🚀 ምዕራፍ 5: ጠቕላላ ስክሪን (Main Render)
   // ==========================================================
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: isDarkMode ? "#121212" : "#f0f2f5" },
+      ]}
+    >
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* ሄደር */}
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: isDarkMode ? "#1E1E1E" : "#029eff" },
+        ]}
+      >
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
@@ -219,7 +261,15 @@ export default function ChatScreen() {
 
       {/* ናይ ኣቕሓ ፕሪቪው (Preview Banner) */}
       {showPreview && productId && (
-        <View style={styles.productPreviewContainer}>
+        <View
+          style={[
+            styles.productPreviewContainer,
+            {
+              backgroundColor: isDarkMode ? "#1E1E1E" : "#fff",
+              borderBottomColor: isDarkMode ? "#333" : "#ddd",
+            },
+          ]}
+        >
           <TouchableOpacity
             style={{ flexDirection: "row", flex: 1, alignItems: "center" }}
             onPress={() => router.push(`/product/${productId}` as any)}
@@ -229,7 +279,13 @@ export default function ChatScreen() {
               style={styles.previewImg}
             />
             <View style={styles.previewInfo}>
-              <Text style={styles.previewTitle} numberOfLines={1}>
+              <Text
+                style={[
+                  styles.previewTitle,
+                  { color: isDarkMode ? "#FFF" : "#333" },
+                ]}
+                numberOfLines={1}
+              >
                 {productName}
               </Text>
               <Text style={styles.previewPrice}>{productPrice} Br</Text>
@@ -240,7 +296,11 @@ export default function ChatScreen() {
             style={styles.closePreviewBtn}
             onPress={() => setShowPreview(false)}
           >
-            <Ionicons name="close-circle" size={22} color="#999" />
+            <Ionicons
+              name="close-circle"
+              size={22}
+              color={isDarkMode ? "#888" : "#999"}
+            />
           </TouchableOpacity>
         </View>
       )}
@@ -262,8 +322,17 @@ export default function ChatScreen() {
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
-              <Ionicons name="chatbubbles-outline" size={50} color="#ccc" />
-              <Text style={styles.emptyText}>
+              <Ionicons
+                name="chatbubbles-outline"
+                size={50}
+                color={isDarkMode ? "#444" : "#ccc"}
+              />
+              <Text
+                style={[
+                  styles.emptyText,
+                  { color: isDarkMode ? "#888" : "#888" },
+                ]}
+              >
                 ምስ {receiverName} ዕላል ጀምሩ! 👋
               </Text>
             </View>
@@ -271,10 +340,22 @@ export default function ChatScreen() {
         />
 
         {/* መጽሓፊ ሳጹን (Input Area) */}
-        <View style={styles.inputContainer}>
+        <View
+          style={[
+            styles.inputContainer,
+            { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+          ]}
+        >
           <TextInput
-            style={styles.textInput}
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: isDarkMode ? "#2A2A2A" : "#f0f2f5",
+                color: isDarkMode ? "#FFF" : "#333",
+              },
+            ]}
             placeholder="መልእኽቲ ጽሓፉ..."
+            placeholderTextColor={isDarkMode ? "#888" : "#999"}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -282,7 +363,9 @@ export default function ChatScreen() {
           <TouchableOpacity
             style={[
               styles.sendBtn,
-              !inputText.trim() && { backgroundColor: "#ccc" },
+              !inputText.trim() && {
+                backgroundColor: isDarkMode ? "#444" : "#ccc",
+              },
             ]}
             onPress={sendMessage}
             disabled={!inputText.trim()}
@@ -298,7 +381,7 @@ export default function ChatScreen() {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-} // 👈 💡 ማጂክ: እዚኣ እያ እታ ተደምሲሳ ዝነበረት ወሳኒት ቅንፍ!
+}
 
 // ==========================================================
 // 🚀 ምዕራፍ 6: ዲዛይን (Styles)
@@ -372,7 +455,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // 💡 ማጂክ 5: ዲዛይን ናይታ ኣብ ውሽጢ ዕላል እትኣቱ ካርድ
   msgProductCard: {
     flexDirection: "row",
     padding: 8,

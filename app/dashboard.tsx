@@ -1,7 +1,7 @@
 // ==========================================================
 // 🚀 ምዕራፍ 1: መእተዊ (Imports)
 // ==========================================================
-import { FontAwesome5, Ionicons } from "@expo/vector-icons"; // 💡 ማጂክ: Ionicons ተወሲኹ
+import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import {
@@ -21,6 +21,7 @@ import {
   View,
 } from "react-native";
 import { AuthContext } from "../context/AuthContext";
+import { ThemeContext } from "../context/ThemeContext"; // 💡 ሓዱሽ: ዳርክ ሞድ ሓንጎል
 
 const API_BASE_URL = "https://meyda-app.onrender.com";
 
@@ -31,8 +32,9 @@ export default function AdminDashboardScreen() {
   // 🚀 ምዕራፍ 2: መኽዘን ኩነታት (State Management)
   // ==========================================================
   const { user: adminUser } = useContext(AuthContext);
+  const { isDarkMode } = useContext(ThemeContext); // 💡 ማጂክ: ዳርክ ሞድ ንጽውዕ
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false); // 💡 ማጂክ: ን ሪፍሬሽ
+  const [refreshing, setRefreshing] = useState(false);
 
   const [stats, setStats] = useState({
     users: 0,
@@ -99,7 +101,6 @@ export default function AdminDashboardScreen() {
     }
   };
 
-  // 💡 ማጂክ: Pull to Refresh ፋንክሽን
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchDashboardData();
@@ -212,9 +213,20 @@ export default function AdminDashboardScreen() {
   // ==========================================================
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: isDarkMode ? "#121212" : "#f4f7f6" },
+        ]}
+      >
         <ActivityIndicator size="large" color="#029eff" />
-        <Text style={{ marginTop: 10, color: "#777", fontWeight: "bold" }}>
+        <Text
+          style={{
+            marginTop: 10,
+            color: isDarkMode ? "#AAA" : "#777",
+            fontWeight: "bold",
+          }}
+        >
           ዳሽቦርድ ይዳሎ ኣሎ...
         </Text>
       </View>
@@ -225,8 +237,18 @@ export default function AdminDashboardScreen() {
     return null;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.adminHeader}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: isDarkMode ? "#121212" : "#f4f7f6" },
+      ]}
+    >
+      <View
+        style={[
+          styles.adminHeader,
+          { backgroundColor: isDarkMode ? "#1E1E1E" : "#2c3e50" },
+        ]}
+      >
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <FontAwesome5 name="shield-alt" size={20} color="#fff" />
           <Text style={styles.headerTitle}> ኣድሚን ዳሽቦርድ</Text>
@@ -248,22 +270,37 @@ export default function AdminDashboardScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={["#029eff"]}
+            tintColor={isDarkMode ? "#029eff" : undefined}
           />
-        } // 💡 ማጂክ: Pull to refresh
+        }
       >
         <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeTitle}>
+          <Text
+            style={[
+              styles.welcomeTitle,
+              { color: isDarkMode ? "#FFF" : "#333" },
+            ]}
+          >
             እንቋዕ ብደሓን መጻእካ, {adminUser.name}!
           </Text>
-          <Text style={styles.welcomeText}>
+          <Text
+            style={[
+              styles.welcomeText,
+              { color: isDarkMode ? "#CCC" : "#7f8c8d" },
+            ]}
+          >
             እዚ ማእከል ቁጽጽር ናይ Meyda Market እዩ። ንኹሉ ብጥንቃቐ ምሓድሮ።
           </Text>
         </View>
 
-        {/* 💡 ማጂክ: ሓዱሽ ፕሪምየም ዲዛይን ን Stats */}
         <View style={styles.statsGrid}>
-          {/* 1. Users Stat (Full Width with Progress Bar) */}
-          <View style={styles.statCardFull}>
+          {/* 1. Users Stat */}
+          <View
+            style={[
+              styles.statCardFull,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
             <View
               style={{
                 flexDirection: "row",
@@ -277,14 +314,32 @@ export default function AdminDashboardScreen() {
                   <FontAwesome5 name="users" size={20} color="#fff" />
                 </View>
                 <View style={{ marginLeft: 12 }}>
-                  <Text style={styles.statLabel}>ጠቕላላ ተጠቀምቲ</Text>
-                  <Text style={styles.statNumber}>{stats.users}</Text>
+                  <Text
+                    style={[
+                      styles.statLabel,
+                      { color: isDarkMode ? "#AAA" : "#7f8c8d" },
+                    ]}
+                  >
+                    ጠቕላላ ተጠቀምቲ
+                  </Text>
+                  <Text
+                    style={[
+                      styles.statNumber,
+                      { color: isDarkMode ? "#FFF" : "#333" },
+                    ]}
+                  >
+                    {stats.users}
+                  </Text>
                 </View>
               </View>
             </View>
 
-            {/* 💡 ማጂክ: Visual Progress Bar */}
-            <View style={styles.progressBarContainer}>
+            <View
+              style={[
+                styles.progressBarContainer,
+                { backgroundColor: isDarkMode ? "#333" : "#eee" },
+              ]}
+            >
               <View
                 style={[
                   styles.progressSegment,
@@ -306,11 +361,21 @@ export default function AdminDashboardScreen() {
                 marginTop: 8,
               }}
             >
-              <Text style={styles.breakdownText}>
+              <Text
+                style={[
+                  styles.breakdownText,
+                  { color: isDarkMode ? "#CCC" : "#555" },
+                ]}
+              >
                 ⬜ ነጻ (Free):{" "}
                 <Text style={{ fontWeight: "bold" }}>{stats.freeUsers}</Text>
               </Text>
-              <Text style={styles.breakdownText}>
+              <Text
+                style={[
+                  styles.breakdownText,
+                  { color: isDarkMode ? "#CCC" : "#555" },
+                ]}
+              >
                 🟩 ፓኬጅ (Pro):{" "}
                 <Text style={{ fontWeight: "bold", color: "#2ecc71" }}>
                   {stats.subUsers}
@@ -320,48 +385,129 @@ export default function AdminDashboardScreen() {
           </View>
 
           {/* 2. Products Stat (Half Width) */}
-          <View style={[styles.statCardHalf, { borderTopColor: "#2ecc71" }]}>
+          <View
+            style={[
+              styles.statCardHalf,
+              {
+                backgroundColor: isDarkMode ? "#1E1E1E" : "#fff",
+                borderTopColor: "#2ecc71",
+              },
+            ]}
+          >
             <View
               style={[styles.statIconSmall, { backgroundColor: "#2ecc71" }]}
             >
               <FontAwesome5 name="box-open" size={16} color="#fff" />
             </View>
             <View style={styles.statInfo}>
-              <Text style={styles.statNumber}>{stats.products}</Text>
-              <Text style={styles.statLabel}>ኣቕሑት</Text>
+              <Text
+                style={[
+                  styles.statNumber,
+                  { color: isDarkMode ? "#FFF" : "#333" },
+                ]}
+              >
+                {stats.products}
+              </Text>
+              <Text
+                style={[
+                  styles.statLabel,
+                  { color: isDarkMode ? "#AAA" : "#7f8c8d" },
+                ]}
+              >
+                ኣቕሑት
+              </Text>
             </View>
           </View>
 
           {/* 3. News Stat (Half Width) */}
-          <View style={[styles.statCardHalf, { borderTopColor: "#e74c3c" }]}>
+          <View
+            style={[
+              styles.statCardHalf,
+              {
+                backgroundColor: isDarkMode ? "#1E1E1E" : "#fff",
+                borderTopColor: "#e74c3c",
+              },
+            ]}
+          >
             <View
               style={[styles.statIconSmall, { backgroundColor: "#e74c3c" }]}
             >
               <FontAwesome5 name="newspaper" size={16} color="#fff" />
             </View>
             <View style={styles.statInfo}>
-              <Text style={styles.statNumber}>{stats.news}</Text>
-              <Text style={styles.statLabel}>ፖስታት</Text>
+              <Text
+                style={[
+                  styles.statNumber,
+                  { color: isDarkMode ? "#FFF" : "#333" },
+                ]}
+              >
+                {stats.news}
+              </Text>
+              <Text
+                style={[
+                  styles.statLabel,
+                  { color: isDarkMode ? "#AAA" : "#7f8c8d" },
+                ]}
+              >
+                ፖስታት
+              </Text>
             </View>
           </View>
         </View>
 
         {/* ማስተር ስዊች */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <FontAwesome5 name="cogs" size={16} color="#333" />
-            <Text style={styles.cardTitle}> ማስተር ስዊች (Global Settings)</Text>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+          ]}
+        >
+          <View
+            style={[
+              styles.cardHeader,
+              { borderBottomColor: isDarkMode ? "#333" : "#eee" },
+            ]}
+          >
+            <FontAwesome5
+              name="cogs"
+              size={16}
+              color={isDarkMode ? "#FFF" : "#333"}
+            />
+            <Text
+              style={[
+                styles.cardTitle,
+                { color: isDarkMode ? "#FFF" : "#333" },
+              ]}
+            >
+              {" "}
+              ማስተር ስዊች (Global Settings)
+            </Text>
           </View>
 
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingTitle}>ፖስት ምግባር ንኹሉ ፍቐድ</Text>
-              <Text style={styles.settingDesc}>
+              <Text
+                style={[
+                  styles.settingTitle,
+                  { color: isDarkMode ? "#FFF" : "#333" },
+                ]}
+              >
+                ፖስት ምግባር ንኹሉ ፍቐድ
+              </Text>
+              <Text
+                style={[
+                  styles.settingDesc,
+                  { color: isDarkMode ? "#AAA" : "#7f8c8d" },
+                ]}
+              >
                 እዚኣ እንተጠፊኣ፡ ንቡር ተጠቃሚ ኣብ ዜና ፔጅ "ሓዱሽ ፖስት" ክገብር ኣይክእልን።
               </Text>
             </View>
             <Switch
-              trackColor={{ false: "#ccc", true: "#81b0ff" }}
+              trackColor={{
+                false: isDarkMode ? "#555" : "#ccc",
+                true: "#81b0ff",
+              }}
               thumbColor={allowPublicPosting ? "#029eff" : "#f4f3f4"}
               onValueChange={handleTogglePublicPosting}
               value={allowPublicPosting}
@@ -371,20 +517,32 @@ export default function AdminDashboardScreen() {
           <View
             style={[
               styles.settingRow,
-              { borderTopWidth: 1, borderTopColor: "#eee", paddingTop: 15 },
+              {
+                borderTopWidth: 1,
+                borderTopColor: isDarkMode ? "#333" : "#eee",
+                paddingTop: 15,
+              },
             ]}
           >
             <View style={styles.settingInfo}>
               <Text style={[styles.settingTitle, { color: "#2ecc71" }]}>
                 <FontAwesome5 name="money-bill-wave" size={14} /> ክፍሊት ንምሸጣ ግዴታ
               </Text>
-              <Text style={styles.settingDesc}>
+              <Text
+                style={[
+                  styles.settingDesc,
+                  { color: isDarkMode ? "#AAA" : "#7f8c8d" },
+                ]}
+              >
                 እዚኣ እንተጠፊኣ፡{" "}
                 <Text style={{ fontWeight: "bold" }}>ኹሉ ሰብ ብነጻ ክሸይጥ ይኽእል</Text>።
               </Text>
             </View>
             <Switch
-              trackColor={{ false: "#ccc", true: "#a5d6a7" }}
+              trackColor={{
+                false: isDarkMode ? "#555" : "#ccc",
+                true: "#a5d6a7",
+              }}
               thumbColor={requireSubscription ? "#2ecc71" : "#f4f3f4"}
               onValueChange={handleToggleSubscription}
               value={requireSubscription}
@@ -393,30 +551,72 @@ export default function AdminDashboardScreen() {
         </View>
 
         {/* ምሕደራ ተጠቀምቲ */}
-        <View style={[styles.card, { marginBottom: 40 }]}>
-          <View style={styles.cardHeader}>
-            <FontAwesome5 name="users-cog" size={16} color="#333" />
-            <Text style={styles.cardTitle}> ምሕደራ ስልጣን (User Roles)</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDarkMode ? "#1E1E1E" : "#fff",
+              marginBottom: 40,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.cardHeader,
+              { borderBottomColor: isDarkMode ? "#333" : "#eee" },
+            ]}
+          >
+            <FontAwesome5
+              name="users-cog"
+              size={16}
+              color={isDarkMode ? "#FFF" : "#333"}
+            />
+            <Text
+              style={[
+                styles.cardTitle,
+                { color: isDarkMode ? "#FFF" : "#333" },
+              ]}
+            >
+              {" "}
+              ምሕደራ ስልጣን (User Roles)
+            </Text>
           </View>
 
-          {/* 💡 ማጂክ: Modern Search Bar */}
-          <View style={styles.searchContainer}>
+          <View
+            style={[
+              styles.searchContainer,
+              {
+                backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                borderColor: isDarkMode ? "#444" : "#eee",
+              },
+            ]}
+          >
             <Ionicons
               name="search"
               size={20}
-              color="#999"
+              color={isDarkMode ? "#AAA" : "#999"}
               style={styles.searchIcon}
             />
             <TextInput
-              style={styles.searchInput}
+              style={[
+                styles.searchInput,
+                { color: isDarkMode ? "#FFF" : "#333" },
+              ]}
               placeholder="ብ ስም ወይ ኢሜይል ድለይ..."
+              placeholderTextColor={isDarkMode ? "#888" : "#999"}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
           </View>
 
           {filteredUsers.length === 0 ? (
-            <Text style={{ textAlign: "center", color: "#777", padding: 20 }}>
+            <Text
+              style={{
+                textAlign: "center",
+                color: isDarkMode ? "#AAA" : "#777",
+                padding: 20,
+              }}
+            >
               ተጠቃሚ ኣይተረኽበን።
             </Text>
           ) : (
@@ -435,19 +635,40 @@ export default function AdminDashboardScreen() {
               };
 
               return (
-                <View key={idx} style={styles.userRow}>
+                <View
+                  key={idx}
+                  style={[
+                    styles.userRow,
+                    { borderBottomColor: isDarkMode ? "#333" : "#eee" },
+                  ]}
+                >
                   <View style={styles.userCell}>
                     <Image
                       source={{
                         uri: u.profilePic || "https://via.placeholder.com/40",
                       }}
-                      style={styles.userAvatar}
+                      style={[
+                        styles.userAvatar,
+                        { backgroundColor: isDarkMode ? "#333" : "#eee" },
+                      ]}
                     />
                     <View>
-                      <Text style={styles.userName}>
+                      <Text
+                        style={[
+                          styles.userName,
+                          { color: isDarkMode ? "#FFF" : "#333" },
+                        ]}
+                      >
                         {u.name || "Unknown User"}
                       </Text>
-                      <Text style={styles.userEmail}>{u.email || u.phone}</Text>
+                      <Text
+                        style={[
+                          styles.userEmail,
+                          { color: isDarkMode ? "#AAA" : "#7f8c8d" },
+                        ]}
+                      >
+                        {u.email || u.phone}
+                      </Text>
                     </View>
                   </View>
 
@@ -472,12 +693,23 @@ export default function AdminDashboardScreen() {
                       <TouchableOpacity
                         style={[
                           styles.roleChangeBtn,
+                          {
+                            backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                            borderColor: isDarkMode ? "#444" : "#ddd",
+                          },
                           !canEdit && { opacity: 0.5 },
                         ]}
                         disabled={!canEdit}
                         onPress={() => changeUserRole(u._id, u.name, "user")}
                       >
-                        <Text style={styles.roleChangeBtnText}>User</Text>
+                        <Text
+                          style={[
+                            styles.roleChangeBtnText,
+                            { color: isDarkMode ? "#FFF" : "#333" },
+                          ]}
+                        >
+                          User
+                        </Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity

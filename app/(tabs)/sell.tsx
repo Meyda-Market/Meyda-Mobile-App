@@ -7,21 +7,22 @@ import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useContext, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
+import { ThemeContext } from "../../context/ThemeContext"; // 💡 ሓዱሽ: ዳርክ ሞድ ሓንጎል መጸውዒ
 
 const API_BASE_URL = "https://meyda-app.onrender.com";
 
@@ -68,7 +69,6 @@ const locationsData = [
   { region: "driedawa", cities: [] },
 ];
 
-// 💡 ሓዱሽ ማጂክ: መደበኛ ፓኬጃት (Regular Packages ን ምዝርጋሕ ኣቕሑት)
 const regularPackages = [
   { id: "r1", name: "መደበኛ ን 1 ሰሙን", price: 100 },
   { id: "r2", name: "መደበኛ ን 1 ወርሒ", price: 300 },
@@ -77,7 +77,6 @@ const regularPackages = [
   { id: "r5", name: "መደበኛ ን 1 ዓመት", price: 2500 },
 ];
 
-// ናይ PRO ባነር ፓኬጃት
 const marketProPackages = [
   { id: "m1", name: "ኣብ ላዕለዋይ ባነር ን 3 መዓልቲ", price: 300 },
   { id: "m2", name: "ኣብ ላዕለዋይ ባነር ን 1 ሰሙን", price: 600 },
@@ -109,6 +108,8 @@ const conditionOptions = [
 export default function SellScreen() {
   const router = useRouter();
   const { user } = useContext(AuthContext);
+  // 💡 ማጂክ: ዳርክ ሞድ ሓንጎል ንጽውዕ (ብዘይ መጥወቒት)
+  const { isDarkMode } = useContext(ThemeContext);
 
   // ==========================================================
   // 🚀 ምዕራፍ 3: መኽዘን ኩነታት (State Management)
@@ -133,15 +134,14 @@ export default function SellScreen() {
   const [isPro, setIsPro] = useState(false);
   const [showProMenu, setShowProMenu] = useState(false);
 
-  // 💡 ማስተር ስዊችን ናይ ፓኬጅ ኩነታትን (Global & User Subscription Status)
   const [isPaymentRequired, setIsPaymentRequired] = useState(false);
-  const [hasActiveSubscription, setHasActiveSubscription] = useState(false); // ድኳኑ ክፉት ድዩ?
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
 
   const [showCatModal, setShowCatModal] = useState(false);
   const [showLocModal, setShowLocModal] = useState(false);
   const [activeRegionStep, setActiveRegionStep] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentType, setPaymentType] = useState(""); // 'regular', 'market_pro', 'advert_pro'
+  const [paymentType, setPaymentType] = useState("");
   const [selectedPkgPrice, setSelectedPkgPrice] = useState(0);
 
   const [selectionConfig, setSelectionConfig] = useState<{
@@ -161,7 +161,6 @@ export default function SellScreen() {
       if (user && user.phone)
         setPhone(user.phone.replace("+251", "").replace(/^0+/, ""));
       fetchGlobalSettings();
-      // 💡 ንግዚኡ ን መፈተኒ: user ፓኬጅ ከም ዘይገዝአ ጌርና ንጅምር (Backend ምስ ተተኽለ user.hasSubscription ይኸውን)
       setHasActiveSubscription(false);
     }, [user]),
   );
@@ -214,9 +213,8 @@ export default function SellScreen() {
     Alert.alert("ዕውት", `✅ ብ ${method} ዝተፈጸመ ክፍሊት ተቐቢልና ኣለና!`);
     setShowPaymentModal(false);
 
-    // 💡 ማጂክ: እንታይ ዓይነት ፓኬጅ እዩ ገዚኡ?
     if (paymentType === "regular") {
-      setHasActiveSubscription(true); // ድኳኑ ክፉት ኮይኑ ኣሎ
+      setHasActiveSubscription(true);
       Alert.alert("እንቋዕ ሓጎሰኩም!", "ድኳንኩም ብዓወት ተኸፊቱ ኣሎ። ሕጂ ንብረትኩም ብነጻ ዝርግሑ!");
     } else if (paymentType === "advert_pro") {
       setIsPro(true);
@@ -233,6 +231,7 @@ export default function SellScreen() {
     if (selectionConfig.type === "condition") setCondition(item);
     setSelectionConfig({ ...selectionConfig, visible: false });
   };
+
   // ==========================================================
   // 🚀 ምዕራፍ 6: ናብ ሰርቨር ምልኣኽ (Submit Logic)
   // ==========================================================
@@ -243,7 +242,6 @@ export default function SellScreen() {
       return;
     }
 
-    // 💡 ሓዱሽ ማጂክ: PRO እንተኾይኑ፡ ናይ መደበኛ ፓኬጅ ግዴታ የብሉን!
     if (
       isPaymentRequired &&
       !hasActiveSubscription &&
@@ -255,7 +253,6 @@ export default function SellScreen() {
       return;
     }
 
-    // 💡 ማጂክ 3: Advert (መወዓውዒ) እንተኾይኑ ቦታ (Region) ግዴታ ኣይኮነን
     if (adType === "market") {
       if (
         !title ||
@@ -292,7 +289,6 @@ export default function SellScreen() {
       );
       formData.append("condition", condition?.id || "new");
 
-      // 💡 Advert እንተኾይኑ ቦታ Optional እዩ
       const locValue = city ? `${region}, ${city}` : region || "";
       formData.append(
         "location",
@@ -318,8 +314,6 @@ export default function SellScreen() {
       formData.append("phone", finalPhone);
 
       formData.append("adType", adType || "market");
-
-      // 💡 ማጂክ 1: isPro ከም String ንሰድዶ ኣለና (ኣብ home.tsx ከነስተኻኽሎ ኢና)
       formData.append("isPro", isPro ? "true" : "false");
       formData.append("icon", category?.icon || "bullhorn");
 
@@ -378,17 +372,28 @@ export default function SellScreen() {
       setIsSubmitting(false);
     }
   };
+
   // ==========================================================
   // 🚀 ምዕራፍ 7: ዲዛይን ጠቕላላ ፔጅ (Main Render)
   // ==========================================================
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: isDarkMode ? "#121212" : "#f4f6f9" },
+      ]}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         {/* 7.1 Header & PRO Top Button */}
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+          ]}
+        >
           <Text style={styles.headerTitle}>ንብረት መዝግብ (Post Ad)</Text>
           <TouchableOpacity
             style={styles.proBtnTop}
@@ -400,18 +405,40 @@ export default function SellScreen() {
         </View>
 
         {showProMenu && (
-          <View style={styles.proDropdown}>
+          <View
+            style={[
+              styles.proDropdown,
+              {
+                backgroundColor: isDarkMode ? "#2A2A2A" : "#fff",
+                borderColor: isDarkMode ? "#444" : "#eee",
+              },
+            ]}
+          >
             <TouchableOpacity
-              style={styles.proDropdownItem}
+              style={[
+                styles.proDropdownItem,
+                { borderColor: isDarkMode ? "#444" : "#eee" },
+              ]}
               onPress={() => openPayment("market_pro")}
             >
               <Ionicons name="arrow-up-circle" size={18} color="#029eff" />
-              <Text style={styles.proDropdownText}>
+              <Text
+                style={[
+                  styles.proDropdownText,
+                  { color: isDarkMode ? "#FFF" : "#333" },
+                ]}
+              >
                 PRO Market (ኣብ ላዕሊ ስቐሎ)
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.proDropdownItem, { borderBottomWidth: 0 }]}
+              style={[
+                styles.proDropdownItem,
+                {
+                  borderBottomWidth: 0,
+                  borderColor: isDarkMode ? "#444" : "#eee",
+                },
+              ]}
               onPress={() => openPayment("advert_pro")}
             >
               <Ionicons name="megaphone" size={18} color="#d4af37" />
@@ -469,8 +496,17 @@ export default function SellScreen() {
           )}
 
           {/* 7.3 ፎርም (Form Inputs) */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>ስእልታት ወይ ባነር ({images.length}/5)</Text>
+          <View
+            style={[
+              styles.formGroup,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <Text
+              style={[styles.label, { color: isDarkMode ? "#CCC" : "#555" }]}
+            >
+              ስእልታት ወይ ባነር ({images.length}/5)
+            </Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -488,38 +524,90 @@ export default function SellScreen() {
                 </View>
               ))}
               {images.length < 5 && (
-                <TouchableOpacity style={styles.uploadBox} onPress={pickImage}>
-                  <Ionicons name="camera" size={32} color="#999" />
-                  <Text style={styles.uploadBoxText}>ስእሊ ወሰኽ</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.uploadBox,
+                    {
+                      backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                      borderColor: isDarkMode ? "#555" : "#029eff",
+                    },
+                  ]}
+                  onPress={pickImage}
+                >
+                  <Ionicons
+                    name="camera"
+                    size={32}
+                    color={isDarkMode ? "#AAA" : "#999"}
+                  />
+                  <Text
+                    style={[
+                      styles.uploadBoxText,
+                      { color: isDarkMode ? "#AAA" : "#999" },
+                    ]}
+                  >
+                    ስእሊ ወሰኽ
+                  </Text>
                 </TouchableOpacity>
               )}
             </ScrollView>
           </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>
+          <View
+            style={[
+              styles.formGroup,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <Text
+              style={[styles.label, { color: isDarkMode ? "#CCC" : "#555" }]}
+            >
               {adType === "advert"
                 ? "ስም ትካል (Business Name)"
                 : "ስም ንብረት (Title)"}
             </Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                  borderColor: isDarkMode ? "#444" : "#eee",
+                  color: isDarkMode ? "#FFF" : "#333",
+                },
+              ]}
               placeholder={
                 adType === "advert"
                   ? "ንኣብነት፦ ስካይላይት ሆቴል"
                   : "ንኣብነት፦ Samsung S21 Ultra"
               }
+              placeholderTextColor={isDarkMode ? "#888" : "#999"}
               value={title}
               onChangeText={setTitle}
             />
           </View>
 
           {adType === "market" && (
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>ዋጋ (Price in ETB)</Text>
+            <View
+              style={[
+                styles.formGroup,
+                { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+              ]}
+            >
+              <Text
+                style={[styles.label, { color: isDarkMode ? "#CCC" : "#555" }]}
+              >
+                ዋጋ (Price in ETB)
+              </Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                    borderColor: isDarkMode ? "#444" : "#eee",
+                    color: isDarkMode ? "#FFF" : "#333",
+                  },
+                ]}
                 placeholder="0.00"
+                placeholderTextColor={isDarkMode ? "#888" : "#999"}
                 keyboardType="numeric"
                 value={price}
                 onChangeText={setPrice}
@@ -527,39 +615,116 @@ export default function SellScreen() {
             </View>
           )}
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>ቦታ (Location)</Text>
+          <View
+            style={[
+              styles.formGroup,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <Text
+              style={[styles.label, { color: isDarkMode ? "#CCC" : "#555" }]}
+            >
+              ቦታ (Location)
+            </Text>
             <TouchableOpacity
-              style={styles.selectorBtn}
+              style={[
+                styles.selectorBtn,
+                {
+                  backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                  borderColor: isDarkMode ? "#444" : "#eee",
+                },
+              ]}
               onPress={() => setShowLocModal(true)}
             >
-              <Text style={{ color: region ? "#333" : "#999" }}>
+              <Text
+                style={{
+                  color: region
+                    ? isDarkMode
+                      ? "#FFF"
+                      : "#333"
+                    : isDarkMode
+                      ? "#888"
+                      : "#999",
+                }}
+              >
                 {city ? `${region}, ${city}` : region || "ክልልን ከተማን ምረጽ..."}
               </Text>
-              <Ionicons name="chevron-down" size={20} color="#999" />
+              <Ionicons
+                name="chevron-down"
+                size={20}
+                color={isDarkMode ? "#888" : "#999"}
+              />
             </TouchableOpacity>
           </View>
 
           {adType === "market" && (
             <View style={styles.rowGroup}>
-              <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
-                <Text style={styles.label}>ምድብ (Category)</Text>
+              <View
+                style={[
+                  styles.formGroup,
+                  {
+                    flex: 1,
+                    marginRight: 10,
+                    backgroundColor: isDarkMode ? "#1E1E1E" : "#fff",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.label,
+                    { color: isDarkMode ? "#CCC" : "#555" },
+                  ]}
+                >
+                  ምድብ (Category)
+                </Text>
                 <TouchableOpacity
-                  style={styles.selectorBtn}
+                  style={[
+                    styles.selectorBtn,
+                    {
+                      backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                      borderColor: isDarkMode ? "#444" : "#eee",
+                    },
+                  ]}
                   onPress={() => setShowCatModal(true)}
                 >
                   <Text
-                    style={{ color: category ? "#333" : "#999" }}
+                    style={{
+                      color: category
+                        ? isDarkMode
+                          ? "#FFF"
+                          : "#333"
+                        : isDarkMode
+                          ? "#888"
+                          : "#999",
+                    }}
                     numberOfLines={1}
                   >
                     {category ? category.name : "ምረጽ..."}
                   </Text>
                 </TouchableOpacity>
               </View>
-              <View style={[styles.formGroup, { flex: 1 }]}>
-                <Text style={styles.label}>ኩነታት (Condition)</Text>
+              <View
+                style={[
+                  styles.formGroup,
+                  { flex: 1, backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.label,
+                    { color: isDarkMode ? "#CCC" : "#555" },
+                  ]}
+                >
+                  ኩነታት (Condition)
+                </Text>
                 <TouchableOpacity
-                  style={styles.selectorBtn}
+                  style={[
+                    styles.selectorBtn,
+                    {
+                      backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                      borderColor: isDarkMode ? "#444" : "#eee",
+                    },
+                  ]}
                   onPress={() =>
                     setSelectionConfig({
                       visible: true,
@@ -570,12 +735,25 @@ export default function SellScreen() {
                   }
                 >
                   <Text
-                    style={{ color: condition ? "#333" : "#999", fontSize: 13 }}
+                    style={{
+                      color: condition
+                        ? isDarkMode
+                          ? "#FFF"
+                          : "#333"
+                        : isDarkMode
+                          ? "#888"
+                          : "#999",
+                      fontSize: 13,
+                    }}
                     numberOfLines={1}
                   >
                     {condition ? condition.name : "ምረጽ..."}
                   </Text>
-                  <Ionicons name="chevron-down" size={16} color="#999" />
+                  <Ionicons
+                    name="chevron-down"
+                    size={16}
+                    color={isDarkMode ? "#888" : "#999"}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -583,7 +761,15 @@ export default function SellScreen() {
 
           {adType === "market" &&
             (category?.id === "mobile" || category?.id === "laptop") && (
-              <View style={styles.techGroup}>
+              <View
+                style={[
+                  styles.techGroup,
+                  {
+                    backgroundColor: isDarkMode ? "#1A252C" : "#f4f9fc",
+                    borderColor: isDarkMode ? "#029eff" : "#029eff",
+                  },
+                ]}
+              >
                 <Text style={styles.techLabel}>
                   <Ionicons name="hardware-chip" size={16} /> ቴክኒካዊ ሓበሬታ
                 </Text>
@@ -591,7 +777,11 @@ export default function SellScreen() {
                   <TouchableOpacity
                     style={[
                       styles.selectorBtn,
-                      { flex: 1, backgroundColor: "#fff" },
+                      {
+                        flex: 1,
+                        backgroundColor: isDarkMode ? "#2A2A2A" : "#fff",
+                        borderColor: isDarkMode ? "#444" : "#eee",
+                      },
                     ]}
                     onPress={() =>
                       setSelectionConfig({
@@ -603,16 +793,33 @@ export default function SellScreen() {
                     }
                   >
                     <Text
-                      style={{ color: ram ? "#333" : "#999", fontSize: 13 }}
+                      style={{
+                        color: ram
+                          ? isDarkMode
+                            ? "#FFF"
+                            : "#333"
+                          : isDarkMode
+                            ? "#888"
+                            : "#999",
+                        fontSize: 13,
+                      }}
                     >
                       {ram ? ram : "RAM ምረጽ"}
                     </Text>
-                    <Ionicons name="chevron-down" size={16} color="#999" />
+                    <Ionicons
+                      name="chevron-down"
+                      size={16}
+                      color={isDarkMode ? "#888" : "#999"}
+                    />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
                       styles.selectorBtn,
-                      { flex: 1, backgroundColor: "#fff" },
+                      {
+                        flex: 1,
+                        backgroundColor: isDarkMode ? "#2A2A2A" : "#fff",
+                        borderColor: isDarkMode ? "#444" : "#eee",
+                      },
                     ]}
                     onPress={() =>
                       setSelectionConfig({
@@ -624,23 +831,53 @@ export default function SellScreen() {
                     }
                   >
                     <Text
-                      style={{ color: storage ? "#333" : "#999", fontSize: 13 }}
+                      style={{
+                        color: storage
+                          ? isDarkMode
+                            ? "#FFF"
+                            : "#333"
+                          : isDarkMode
+                            ? "#888"
+                            : "#999",
+                        fontSize: 13,
+                      }}
                     >
                       {storage ? storage : "Storage ምረጽ"}
                     </Text>
-                    <Ionicons name="chevron-down" size={16} color="#999" />
+                    <Ionicons
+                      name="chevron-down"
+                      size={16}
+                      color={isDarkMode ? "#888" : "#999"}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
             )}
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>
+          <View
+            style={[
+              styles.formGroup,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <Text
+              style={[styles.label, { color: isDarkMode ? "#CCC" : "#555" }]}
+            >
               {adType === "advert" ? "መግለጺ ማስታወቂያ" : "መግለጺ (Description)"}
             </Text>
             <TextInput
-              style={[styles.input, { height: 100, textAlignVertical: "top" }]}
+              style={[
+                styles.input,
+                {
+                  height: 100,
+                  textAlignVertical: "top",
+                  backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                  borderColor: isDarkMode ? "#444" : "#eee",
+                  color: isDarkMode ? "#FFF" : "#333",
+                },
+              ]}
               placeholder="ዝርዝር ሓበሬታ ጸሓፍ..."
+              placeholderTextColor={isDarkMode ? "#888" : "#999"}
               multiline
               value={description}
               onChangeText={setDescription}
@@ -648,17 +885,46 @@ export default function SellScreen() {
           </View>
 
           {adType === "market" && (
-            <View style={[styles.formGroup, styles.phoneGroup]}>
+            <View
+              style={[
+                styles.formGroup,
+                styles.phoneGroup,
+                { backgroundColor: isDarkMode ? "#1A252C" : "#f4f9fc" },
+              ]}
+            >
               <Text style={styles.phoneLabel}>
                 <Ionicons name="call" size={14} /> መደወሊ ስልኪ
               </Text>
               <View style={styles.phoneInputWrapper}>
-                <View style={styles.countryCode}>
-                  <Text style={{ fontWeight: "bold" }}>🇪🇹 +251</Text>
+                <View
+                  style={[
+                    styles.countryCode,
+                    {
+                      backgroundColor: isDarkMode ? "#2A2A2A" : "#fff",
+                      borderColor: isDarkMode ? "#444" : "#ccc",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      fontWeight: "bold",
+                      color: isDarkMode ? "#FFF" : "#333",
+                    }}
+                  >
+                    🇪🇹 +251
+                  </Text>
                 </View>
                 <TextInput
-                  style={styles.phoneInput}
+                  style={[
+                    styles.phoneInput,
+                    {
+                      backgroundColor: isDarkMode ? "#2A2A2A" : "#fff",
+                      borderColor: isDarkMode ? "#444" : "#ccc",
+                      color: isDarkMode ? "#FFF" : "#333",
+                    },
+                  ]}
                   placeholder="911 23 45 67"
+                  placeholderTextColor={isDarkMode ? "#888" : "#999"}
                   keyboardType="phone-pad"
                   value={phone}
                   onChangeText={setPhone}
@@ -675,7 +941,7 @@ export default function SellScreen() {
               !hasActiveSubscription &&
               adType === "market" &&
               !isPro
-                ? { backgroundColor: "#ccc" }
+                ? { backgroundColor: isDarkMode ? "#555" : "#ccc" }
                 : {},
             ]}
             onPress={submitAd}
@@ -702,26 +968,41 @@ export default function SellScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* ========================================== */}
-      {/* 🚀 ምዕራፍ 8: MODALS (ፖፕ-ኣፕታት) */}
-      {/* ========================================== */}
-
+      {/* ==========================================
+          🚀 ምዕራፍ 8: MODALS (ፖፕ-ኣፕታት) 
+          ========================================== */}
       <Modal
         visible={selectionConfig.visible}
         animationType="slide"
         transparent={true}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{selectionConfig.title}</Text>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { borderColor: isDarkMode ? "#333" : "#eee" },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.modalTitle,
+                  { color: isDarkMode ? "#FFF" : "#333" },
+                ]}
+              >
+                {selectionConfig.title}
+              </Text>
               <TouchableOpacity
                 onPress={() =>
                   setSelectionConfig({ ...selectionConfig, visible: false })
                 }
               >
-                <Ionicons name="close" size={24} color="red" />
+                <Ionicons name="close" size={24} color="#ff4757" />
               </TouchableOpacity>
             </View>
             <ScrollView>
@@ -731,10 +1012,20 @@ export default function SellScreen() {
                 return (
                   <TouchableOpacity
                     key={idx}
-                    style={styles.listItem}
+                    style={[
+                      styles.listItem,
+                      { borderColor: isDarkMode ? "#333" : "#f0f0f0" },
+                    ]}
                     onPress={() => handleGenericSelect(item)}
                   >
-                    <Text style={styles.listText}>{displayName}</Text>
+                    <Text
+                      style={[
+                        styles.listText,
+                        { color: isDarkMode ? "#CCC" : "#444" },
+                      ]}
+                    >
+                      {displayName}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -742,27 +1033,51 @@ export default function SellScreen() {
           </View>
         </View>
       </Modal>
-
       <Modal visible={showCatModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>ምድብ ምረጽ</Text>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { borderColor: isDarkMode ? "#333" : "#eee" },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.modalTitle,
+                  { color: isDarkMode ? "#FFF" : "#333" },
+                ]}
+              >
+                ምድብ ምረጽ
+              </Text>
               <TouchableOpacity onPress={() => setShowCatModal(false)}>
-                <Ionicons name="close" size={24} color="red" />
+                <Ionicons name="close" size={24} color="#ff4757" />
               </TouchableOpacity>
             </View>
             <ScrollView>
               {categoriesData.map((cat, idx) => (
                 <TouchableOpacity
                   key={idx}
-                  style={styles.listItem}
+                  style={[
+                    styles.listItem,
+                    { borderColor: isDarkMode ? "#333" : "#f0f0f0" },
+                  ]}
                   onPress={() => {
                     setCategory(cat);
                     setShowCatModal(false);
                   }}
                 >
-                  <Text style={styles.listText}>
+                  <Text
+                    style={[
+                      styles.listText,
+                      { color: isDarkMode ? "#CCC" : "#444" },
+                    ]}
+                  >
                     <Ionicons
                       name={cat.icon as any}
                       size={18}
@@ -776,11 +1091,20 @@ export default function SellScreen() {
           </View>
         </View>
       </Modal>
-
       <Modal visible={showLocModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { borderColor: isDarkMode ? "#333" : "#eee" },
+              ]}
+            >
               {activeRegionStep ? (
                 <TouchableOpacity onPress={() => setActiveRegionStep(null)}>
                   <Text style={{ color: "#029eff", fontWeight: "bold" }}>
@@ -790,7 +1114,12 @@ export default function SellScreen() {
               ) : (
                 <Text></Text>
               )}
-              <Text style={styles.modalTitle}>
+              <Text
+                style={[
+                  styles.modalTitle,
+                  { color: isDarkMode ? "#FFF" : "#333" },
+                ]}
+              >
                 {activeRegionStep ? activeRegionStep : "ክልል ምረጽ"}
               </Text>
               <TouchableOpacity
@@ -799,7 +1128,7 @@ export default function SellScreen() {
                   setActiveRegionStep(null);
                 }}
               >
-                <Ionicons name="close" size={24} color="red" />
+                <Ionicons name="close" size={24} color="#ff4757" />
               </TouchableOpacity>
             </View>
             <ScrollView>
@@ -809,20 +1138,33 @@ export default function SellScreen() {
                     ?.cities.map((c, idx) => (
                       <TouchableOpacity
                         key={idx}
-                        style={styles.listItem}
+                        style={[
+                          styles.listItem,
+                          { borderColor: isDarkMode ? "#333" : "#f0f0f0" },
+                        ]}
                         onPress={() => {
                           setCity(c);
                           setShowLocModal(false);
                           setActiveRegionStep(null);
                         }}
                       >
-                        <Text style={styles.listText}>{c}</Text>
+                        <Text
+                          style={[
+                            styles.listText,
+                            { color: isDarkMode ? "#CCC" : "#444" },
+                          ]}
+                        >
+                          {c}
+                        </Text>
                       </TouchableOpacity>
                     ))
                 : locationsData.map((loc, idx) => (
                     <TouchableOpacity
                       key={idx}
-                      style={styles.listItem}
+                      style={[
+                        styles.listItem,
+                        { borderColor: isDarkMode ? "#333" : "#f0f0f0" },
+                      ]}
                       onPress={() => {
                         if (loc.cities.length > 0) {
                           setActiveRegionStep(loc.region);
@@ -834,12 +1176,19 @@ export default function SellScreen() {
                         }
                       }}
                     >
-                      <Text style={styles.listText}>📍 {loc.region}</Text>
+                      <Text
+                        style={[
+                          styles.listText,
+                          { color: isDarkMode ? "#CCC" : "#444" },
+                        ]}
+                      >
+                        📍 {loc.region}
+                      </Text>
                       {loc.cities.length > 0 && (
                         <Ionicons
                           name="chevron-forward"
                           size={18}
-                          color="#999"
+                          color={isDarkMode ? "#666" : "#999"}
                         />
                       )}
                     </TouchableOpacity>
@@ -848,11 +1197,20 @@ export default function SellScreen() {
           </View>
         </View>
       </Modal>
-
       <Modal visible={showPaymentModal} animationType="fade" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { borderColor: isDarkMode ? "#333" : "#eee" },
+              ]}
+            >
               <Text style={[styles.modalTitle, { color: "#029eff" }]}>
                 {paymentType === "regular"
                   ? "መደበኛ ፓኬጅ ምረጹ"
@@ -861,10 +1219,16 @@ export default function SellScreen() {
                     : "PRO Advert"}
               </Text>
               <TouchableOpacity onPress={() => setShowPaymentModal(false)}>
-                <Ionicons name="close" size={24} color="#999" />
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={isDarkMode ? "#AAA" : "#999"}
+                />
               </TouchableOpacity>
             </View>
-            <Text style={{ color: "#666", marginBottom: 15 }}>
+            <Text
+              style={{ color: isDarkMode ? "#AAA" : "#666", marginBottom: 15 }}
+            >
               {paymentType === "regular"
                 ? "ንብረትኩም ንምዝርጋሕ ዝጥዕመኩም ፓኬጅ ምረጹ:"
                 : "ኣብ ፍሉይ ባነር ንምስቓል ምረጹ:"}
@@ -884,12 +1248,20 @@ export default function SellScreen() {
                   key={idx}
                   style={[
                     styles.pkgItem,
+                    {
+                      backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                      borderColor: isDarkMode ? "#444" : "#eee",
+                    },
                     selectedPkgPrice === pkg.price && styles.pkgSelected,
                   ]}
                   onPress={() => setSelectedPkgPrice(pkg.price)}
                 >
                   <Text
-                    style={{ fontWeight: "bold", fontSize: 14, color: "#333" }}
+                    style={{
+                      fontWeight: "bold",
+                      fontSize: 14,
+                      color: isDarkMode ? "#FFF" : "#333",
+                    }}
                   >
                     {pkg.name}
                   </Text>
@@ -907,37 +1279,80 @@ export default function SellScreen() {
             </ScrollView>
 
             <Text
-              style={{ fontWeight: "bold", marginTop: 15, marginBottom: 10 }}
+              style={{
+                fontWeight: "bold",
+                marginTop: 15,
+                marginBottom: 10,
+                color: isDarkMode ? "#FFF" : "#333",
+              }}
             >
               ከፈሊ ኣገባብ ምረጽ
             </Text>
             <View style={{ flexDirection: "row", gap: 10 }}>
               <TouchableOpacity
-                style={styles.payBox}
+                style={[
+                  styles.payBox,
+                  {
+                    backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                    borderColor: isDarkMode ? "#444" : "#eee",
+                  },
+                ]}
                 onPress={() => confirmPayment("Telebirr")}
               >
                 <Ionicons name="phone-portrait" size={24} color="#0088cc" />
-                <Text style={styles.payText}>Telebirr</Text>
+                <Text
+                  style={[
+                    styles.payText,
+                    { color: isDarkMode ? "#FFF" : "#333" },
+                  ]}
+                >
+                  Telebirr
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.payBox}
+                style={[
+                  styles.payBox,
+                  {
+                    backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                    borderColor: isDarkMode ? "#444" : "#eee",
+                  },
+                ]}
                 onPress={() => confirmPayment("CBE Birr")}
               >
                 <Ionicons name="business" size={24} color="#ffaa00" />
-                <Text style={styles.payText}>CBE Birr</Text>
+                <Text
+                  style={[
+                    styles.payText,
+                    { color: isDarkMode ? "#FFF" : "#333" },
+                  ]}
+                >
+                  CBE Birr
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.payBox}
+                style={[
+                  styles.payBox,
+                  {
+                    backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                    borderColor: isDarkMode ? "#444" : "#eee",
+                  },
+                ]}
                 onPress={() => confirmPayment("Card")}
               >
                 <Ionicons name="card" size={24} color="#1a1f71" />
-                <Text style={styles.payText}>Card (Intl)</Text>
+                <Text
+                  style={[
+                    styles.payText,
+                    { color: isDarkMode ? "#FFF" : "#333" },
+                  ]}
+                >
+                  Card (Intl)
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
       <Modal visible={showSuccess} animationType="fade" transparent={true}>
         <View
           style={[
@@ -945,7 +1360,9 @@ export default function SellScreen() {
             {
               justifyContent: "center",
               alignItems: "center",
-              backgroundColor: "rgba(255,255,255,0.95)",
+              backgroundColor: isDarkMode
+                ? "rgba(18,18,18,0.95)"
+                : "rgba(255,255,255,0.95)",
             },
           ]}
         >
@@ -954,13 +1371,19 @@ export default function SellScreen() {
             style={{
               fontSize: 24,
               fontWeight: "bold",
-              color: "#333",
+              color: isDarkMode ? "#FFF" : "#333",
               marginTop: 20,
             }}
           >
             ብጽቡቕ ተለጢፉ!
           </Text>
-          <Text style={{ color: "#666", marginTop: 10, marginBottom: 30 }}>
+          <Text
+            style={{
+              color: isDarkMode ? "#AAA" : "#666",
+              marginTop: 10,
+              marginBottom: 30,
+            }}
+          >
             ንብረትካ/ትካልካ ሕጂ ኣብ ዕዳጋ ይርአ ኣሎ።
           </Text>
           <TouchableOpacity
@@ -979,7 +1402,7 @@ export default function SellScreen() {
 }
 
 // ==========================================================
-// 🚀 ምዕራፍ 8: ዲዛይን (Styles)
+// 🚀 ምዕራፍ 9: ዲዛይን (Styles)
 // ==========================================================
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f4f6f9" },
@@ -1033,7 +1456,6 @@ const styles = StyleSheet.create({
   },
   proDropdownText: { marginLeft: 10, fontWeight: "bold", color: "#333" },
 
-  // 💡 ሓደስቲ ናይ ባነር ዲዛይናት
   bluePromoCard: {
     backgroundColor: "#006699",
     padding: 20,

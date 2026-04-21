@@ -21,9 +21,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
+import { ThemeContext } from "../../context/ThemeContext"; // 💡 ሓዱሽ: ዳርክ ሞድ ሓንጎል መጸውዒ
 
 const API_BASE_URL = "https://meyda-app.onrender.com";
 
@@ -33,7 +34,9 @@ export default function NewsScreen() {
   // ==========================================================
   // 🚀 ምዕራፍ 2: መኽዘን ኩነታት (State Management)
   // ==========================================================
-  const { user } = useContext(AuthContext); // 💡 ማጂክ: ሓቀኛ ዩዘር ካብ ሓንጎል ነምጽእ
+  const { user } = useContext(AuthContext);
+  // 💡 ማጂክ: ዳርክ ሞድ ሓንጎል ንጽውዕ
+  const { isDarkMode, toggleTheme } = useContext(ThemeContext);
   const isGodMode = user && (user.role === "admin" || user.role === "owner");
 
   const [allNews, setAllNews] = useState<any[]>([]);
@@ -42,7 +45,7 @@ export default function NewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [currentFilter, setCurrentFilter] = useState("all");
 
-  const [allowPublicPosting, setAllowPublicPosting] = useState(false); // 💡 ማጂክ: ማስተር ስዊች ዳታ
+  const [allowPublicPosting, setAllowPublicPosting] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeCommentsPostId, setActiveCommentsPostId] = useState<
@@ -66,18 +69,15 @@ export default function NewsScreen() {
 
   const fetchNewsAndSettings = async () => {
     try {
-      // 1. ማስተር ስዊች ካብ ሰርቨር ኣንብብ
       const settingsRes = await fetch(`${API_BASE_URL}/api/admin/stats`);
       if (settingsRes.ok) {
         const statsData = await settingsRes.json();
         setAllowPublicPosting(statsData.allowPublicPosting || false);
       }
 
-      // 2. ዜናታት ኣምጽእ
       const newsRes = await fetch(`${API_BASE_URL}/api/news`);
       if (newsRes.ok) {
         const newsData = await newsRes.json();
-        // Pinned ዝኾኑ ኣብ ላዕሊ ንምምጻእ
         const sortedNews = newsData.sort((a: any, b: any) => {
           if (a.isPinned === b.isPinned)
             return (
@@ -131,7 +131,6 @@ export default function NewsScreen() {
     }
     if (!user) return Alert.alert("መዘኻኸሪ", "መጀመርታ ሎግ-ኢን ግበሩ!");
 
-    // 💡 ማጂክ: ናብ ዳታቤዝ ብቐጥታ ንልእኮ ኣለና (FormData)
     try {
       const token = await AsyncStorage.getItem("meydaToken");
       const formData = new FormData();
@@ -156,7 +155,7 @@ export default function NewsScreen() {
 
       const res = await fetch(`${API_BASE_URL}/api/news`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` }, // Content-Type is auto-set by FormData
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
@@ -167,7 +166,7 @@ export default function NewsScreen() {
         setPostDesc("");
         setPostMediaUri(null);
         setPostIsPinned(false);
-        fetchNewsAndSettings(); // ሓዱሽ ዳታ ንምምጻእ
+        fetchNewsAndSettings();
       } else {
         Alert.alert("ጌጋ", "ፖስት ምግባር ኣይተኻእለን።");
       }
@@ -180,7 +179,6 @@ export default function NewsScreen() {
     if (!user) return Alert.alert("መዘኻኸሪ", "መጀመርታ ሎግ-ኢን ግበሩ!");
     const myId = user._id || user.id;
 
-    // 💡 Optimistic UI: ብኡንብኡ ኣብ ስክሪን ንቐይሮ ቅድሚ ኔትወርክ ምምላሱ
     setAllNews((prev) =>
       prev.map((n) => {
         if (n._id === newsId) {
@@ -230,7 +228,7 @@ export default function NewsScreen() {
       });
       if (res.ok) {
         setCommentInput("");
-        fetchNewsAndSettings(); // Refresh comments
+        fetchNewsAndSettings();
       }
     } catch (error) {
       console.log(error);
@@ -263,11 +261,15 @@ export default function NewsScreen() {
   // 🚀 ምዕራፍ 5: ዲዛይን ላዕለዋይ ክፋል (Header & Tabs)
   // ==========================================================
   const renderHeader = () => {
-    // 💡 ማጂክ: ንቡር ተጠቃሚ እንተኾይኑ፡ ማስተር ስዊች 'allowPublicPosting' ክትበርህ ኣለዋ ምእንቲ ፖስት ክገብር
     const canPost = isGodMode || allowPublicPosting;
 
     return (
-      <View style={styles.headerSection}>
+      <View
+        style={[
+          styles.headerSection,
+          { backgroundColor: isDarkMode ? "#121212" : "#fff" },
+        ]}
+      >
         <View style={styles.headerTop}>
           <Text style={styles.headerTitle}>
             <Ionicons name="globe-outline" size={20} /> ዜናን ሓበሬታን
@@ -282,8 +284,23 @@ export default function NewsScreen() {
                 <Text style={styles.createBtnText}> ሓዱሽ ፖስት</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.themeToggle}>
-              <Ionicons name="moon" size={20} color="#029eff" />
+            {/* 💡 ማጂክ: ወርሒ መጥወቒት ናብ ዳርክ ሞድ ዝሰምዕ ጌርናያ ኣለና */}
+            <TouchableOpacity
+              style={[
+                styles.themeToggle,
+                {
+                  backgroundColor: isDarkMode
+                    ? "#333"
+                    : "rgba(0, 150, 199, 0.1)",
+                },
+              ]}
+              onPress={toggleTheme}
+            >
+              <Ionicons
+                name={isDarkMode ? "sunny" : "moon"}
+                size={20}
+                color={isDarkMode ? "#FFD700" : "#029eff"}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -305,7 +322,14 @@ export default function NewsScreen() {
                   onPress={() => setCurrentFilter(tab)}
                 >
                   <Text
-                    style={[styles.tabText, isActive && styles.tabTextActive]}
+                    style={[
+                      styles.tabText,
+                      isActive && styles.tabTextActive,
+                      // 💡 ጽሑፍ ናይ ዘይተጠውቁ ኣብ ጸልማት ናብ ጻዕዳ ይቕየር
+                      !isActive && {
+                        color: isDarkMode ? "#AAAAAA" : "#65676b",
+                      },
+                    ]}
                   >
                     {tabNames[tab]}
                   </Text>
@@ -332,7 +356,12 @@ export default function NewsScreen() {
     const showComments = activeCommentsPostId === item._id;
 
     return (
-      <View style={styles.newsCard}>
+      <View
+        style={[
+          styles.newsCard,
+          { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+        ]}
+      >
         {item.isPinned && (
           <View style={styles.pinBadge}>
             <Ionicons name="pin" size={12} color="#fff" />
@@ -353,10 +382,27 @@ export default function NewsScreen() {
             <TouchableOpacity
               onPress={() => router.push(`/profile/${item.authorId}` as any)}
             >
-              <Text style={styles.authorName}>{item.authorName}</Text>
+              <Text
+                style={[
+                  styles.authorName,
+                  { color: isDarkMode ? "#FFFFFF" : "#333" },
+                ]}
+              >
+                {item.authorName}
+              </Text>
             </TouchableOpacity>
-            <Text style={styles.postTime}>
-              {timeString} • <Ionicons name="globe-outline" size={10} />
+            <Text
+              style={[
+                styles.postTime,
+                { color: isDarkMode ? "#AAAAAA" : "#65676b" },
+              ]}
+            >
+              {timeString} •{" "}
+              <Ionicons
+                name="globe-outline"
+                size={10}
+                color={isDarkMode ? "#AAAAAA" : "#65676b"}
+              />
             </Text>
           </View>
           {(isGodMode || myId === item.authorId) && (
@@ -374,14 +420,32 @@ export default function NewsScreen() {
             <Text style={styles.newsTagText}>{item.category || "ሓበሬታ"}</Text>
           </View>
           {item.title ? (
-            <Text style={styles.newsTitle}>{item.title}</Text>
+            <Text
+              style={[
+                styles.newsTitle,
+                { color: isDarkMode ? "#FFFFFF" : "#333" },
+              ]}
+            >
+              {item.title}
+            </Text>
           ) : null}
-          <Text style={styles.newsDesc}>{item.description}</Text>
+          <Text
+            style={[
+              styles.newsDesc,
+              { color: isDarkMode ? "#CCCCCC" : "#333" },
+            ]}
+          >
+            {item.description}
+          </Text>
         </View>
 
-        {/* 💡 ማጂክ: Optimized Image Layout */}
         {item.mediaUrl && (
-          <View style={styles.newsMedia}>
+          <View
+            style={[
+              styles.newsMedia,
+              { backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa" },
+            ]}
+          >
             <Image
               source={{ uri: getImageUrl(item.mediaUrl) }}
               style={styles.mediaImage}
@@ -389,9 +453,26 @@ export default function NewsScreen() {
           </View>
         )}
 
-        <View style={styles.newsStats}>
-          <Text style={styles.statsText}>{item.likes?.length || 0} Likes</Text>
-          <Text style={styles.statsText}>
+        <View
+          style={[
+            styles.newsStats,
+            { borderColor: isDarkMode ? "#333" : "#eee" },
+          ]}
+        >
+          <Text
+            style={[
+              styles.statsText,
+              { color: isDarkMode ? "#AAAAAA" : "#65676b" },
+            ]}
+          >
+            {item.likes?.length || 0} Likes
+          </Text>
+          <Text
+            style={[
+              styles.statsText,
+              { color: isDarkMode ? "#AAAAAA" : "#65676b" },
+            ]}
+          >
             {item.comments?.length || 0} Comments
           </Text>
         </View>
@@ -404,11 +485,12 @@ export default function NewsScreen() {
             <Ionicons
               name={isLikedByMe ? "thumbs-up" : "thumbs-up-outline"}
               size={20}
-              color={isLikedByMe ? "#029eff" : "#777"}
+              color={isLikedByMe ? "#029eff" : isDarkMode ? "#AAAAAA" : "#777"}
             />
             <Text
               style={[
                 styles.actionBtnText,
+                { color: isDarkMode ? "#AAAAAA" : "#65676b" },
                 isLikedByMe && { color: "#029eff" },
               ]}
             >
@@ -422,24 +504,62 @@ export default function NewsScreen() {
               setActiveCommentsPostId(showComments ? null : item._id)
             }
           >
-            <Ionicons name="chatbubble-outline" size={20} color="#777" />
-            <Text style={styles.actionBtnText}> ርእይቶ</Text>
+            <Ionicons
+              name="chatbubble-outline"
+              size={20}
+              color={isDarkMode ? "#AAAAAA" : "#777"}
+            />
+            <Text
+              style={[
+                styles.actionBtnText,
+                { color: isDarkMode ? "#AAAAAA" : "#65676b" },
+              ]}
+            >
+              {" "}
+              ርእይቶ
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionBtn}
             onPress={() => Alert.alert("Share", "ናብ ማሕበራዊ ሚድያ ሼር ይግበር ኣሎ...")}
           >
-            <Ionicons name="share-social-outline" size={20} color="#777" />
-            <Text style={styles.actionBtnText}> ሼር</Text>
+            <Ionicons
+              name="share-social-outline"
+              size={20}
+              color={isDarkMode ? "#AAAAAA" : "#777"}
+            />
+            <Text
+              style={[
+                styles.actionBtnText,
+                { color: isDarkMode ? "#AAAAAA" : "#65676b" },
+              ]}
+            >
+              {" "}
+              ሼር
+            </Text>
           </TouchableOpacity>
         </View>
 
+        {/* 💡 ማጂክ: ዳርክ ሞድ ንናይ ኮመንት ሳጹናት */}
         {showComments && (
-          <View style={styles.commentsSection}>
+          <View
+            style={[
+              styles.commentsSection,
+              { backgroundColor: isDarkMode ? "#121212" : "#fafafa" },
+            ]}
+          >
             <View style={styles.commentInputArea}>
               <TextInput
-                style={styles.commentInput}
+                style={[
+                  styles.commentInput,
+                  {
+                    backgroundColor: isDarkMode ? "#2A2A2A" : "#fff",
+                    borderColor: isDarkMode ? "#333" : "#ddd",
+                    color: isDarkMode ? "#FFF" : "#000",
+                  },
+                ]}
                 placeholder="ርእይቶኹም ጽሓፉ..."
+                placeholderTextColor={isDarkMode ? "#888" : "#999"}
                 value={commentInput}
                 onChangeText={setCommentInput}
               />
@@ -457,9 +577,31 @@ export default function NewsScreen() {
                   source={{ uri: getImageUrl(c.userPic) }}
                   style={styles.commentAvatar}
                 />
-                <View style={styles.commentBubble}>
-                  <Text style={styles.commentAuthor}>{c.userName}</Text>
-                  <Text style={styles.commentText}>{c.text}</Text>
+                <View
+                  style={[
+                    styles.commentBubble,
+                    {
+                      backgroundColor: isDarkMode ? "#2A2A2A" : "#fff",
+                      borderColor: isDarkMode ? "#333" : "#eee",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.commentAuthor,
+                      { color: isDarkMode ? "#FFF" : "#333" },
+                    ]}
+                  >
+                    {c.userName}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.commentText,
+                      { color: isDarkMode ? "#CCC" : "#555" },
+                    ]}
+                  >
+                    {c.text}
+                  </Text>
                   {(isGodMode ||
                     myId === c.userId ||
                     myId === item.authorId) && (
@@ -483,21 +625,38 @@ export default function NewsScreen() {
   // 🚀 ምዕራፍ 7: ጠቕላላ ስክሪን (Main Render - FlatList)
   // ==========================================================
   return (
-    <SafeAreaView style={styles.container}>
-      {/* 💡 ማጂክ: Skeleton Loading (Pro Touch) */}
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: isDarkMode ? "#121212" : "#f0f2f5" },
+      ]}
+    >
       {loading ? (
-        <View style={styles.container}>
+        <View
+          style={[
+            styles.container,
+            { backgroundColor: isDarkMode ? "#121212" : "#f0f2f5" },
+          ]}
+        >
           {renderHeader()}
           <View
             style={[
               styles.newsCard,
-              { height: 250, backgroundColor: "#e1e4e8", opacity: 0.5 },
+              {
+                height: 250,
+                backgroundColor: isDarkMode ? "#333" : "#e1e4e8",
+                opacity: 0.5,
+              },
             ]}
           />
           <View
             style={[
               styles.newsCard,
-              { height: 200, backgroundColor: "#e1e4e8", opacity: 0.5 },
+              {
+                height: 200,
+                backgroundColor: isDarkMode ? "#333" : "#e1e4e8",
+                opacity: 0.5,
+              },
             ]}
           />
         </View>
@@ -513,12 +672,19 @@ export default function NewsScreen() {
               refreshing={refreshing}
               onRefresh={onRefresh}
               colors={["#029eff"]}
+              tintColor={isDarkMode ? "#029eff" : undefined}
             />
-          } // 💡 ማጂክ: Refresh
+          }
           ListEmptyComponent={() => (
             <View style={{ alignItems: "center", marginTop: 50 }}>
-              <Ionicons name="newspaper-outline" size={50} color="#ccc" />
-              <Text style={{ color: "#888", marginTop: 10 }}>
+              <Ionicons
+                name="newspaper-outline"
+                size={50}
+                color={isDarkMode ? "#444" : "#ccc"}
+              />
+              <Text
+                style={{ color: isDarkMode ? "#AAA" : "#888", marginTop: 10 }}
+              >
                 ዛጊት ዝተለጥፈ ዜና የለን።
               </Text>
             </View>
@@ -527,7 +693,7 @@ export default function NewsScreen() {
       )}
 
       {/* ==========================================================
-      // 🚀 ምዕራፍ 8: ፖፕ-ኣፕ ናይ ሓዱሽ ፖስት
+      // 🚀 ምዕራፍ 8: ፖፕ-ኣፕ ናይ ሓዱሽ ፖስት (Create Post Modal)
       // ========================================================== */}
       <Modal visible={showCreateModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
@@ -535,40 +701,94 @@ export default function NewsScreen() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={{ width: "100%", alignItems: "center" }}
           >
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>
+            <View
+              style={[
+                styles.modalContent,
+                { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.modalTitle,
+                  { borderColor: isDarkMode ? "#333" : "#eee" },
+                ]}
+              >
                 <FontAwesome5 name="pen" size={16} /> ሓዱሽ ዜና / ሓበሬታ
               </Text>
 
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.formGroup}>
-                  <Text style={styles.label}>ምድብ (Category)</Text>
+                  <Text
+                    style={[
+                      styles.label,
+                      { color: isDarkMode ? "#CCC" : "#777" },
+                    ]}
+                  >
+                    ምድብ (Category)
+                  </Text>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                        borderColor: isDarkMode ? "#333" : "#eee",
+                        color: isDarkMode ? "#FFF" : "#333",
+                      },
+                    ]}
                     value={postCategory}
                     onChangeText={setPostCategory}
                     placeholder="Announcement, Tech..."
+                    placeholderTextColor={isDarkMode ? "#888" : "#999"}
                   />
                 </View>
 
                 <View style={styles.formGroup}>
-                  <Text style={styles.label}>ኣርእስቲ (Title - Optional)</Text>
+                  <Text
+                    style={[
+                      styles.label,
+                      { color: isDarkMode ? "#CCC" : "#777" },
+                    ]}
+                  >
+                    ኣርእስቲ (Title - Optional)
+                  </Text>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                        borderColor: isDarkMode ? "#333" : "#eee",
+                        color: isDarkMode ? "#FFF" : "#333",
+                      },
+                    ]}
                     placeholder="ኣርእስቲ ዜና..."
+                    placeholderTextColor={isDarkMode ? "#888" : "#999"}
                     value={postTitle}
                     onChangeText={setPostTitle}
                   />
                 </View>
 
                 <View style={styles.formGroup}>
-                  <Text style={styles.label}>መግለጺ (Caption - Required)</Text>
+                  <Text
+                    style={[
+                      styles.label,
+                      { color: isDarkMode ? "#CCC" : "#777" },
+                    ]}
+                  >
+                    መግለጺ (Caption - Required)
+                  </Text>
                   <TextInput
                     style={[
                       styles.input,
-                      { height: 100, textAlignVertical: "top" },
+                      {
+                        height: 100,
+                        textAlignVertical: "top",
+                        backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                        borderColor: isDarkMode ? "#333" : "#eee",
+                        color: isDarkMode ? "#FFF" : "#333",
+                      },
                     ]}
                     placeholder="እንታይ ሓበሬታ ክተመሓላልፉ ደሊኹም?..."
+                    placeholderTextColor={isDarkMode ? "#888" : "#999"}
                     multiline
                     value={postDesc}
                     onChangeText={setPostDesc}
@@ -576,8 +796,25 @@ export default function NewsScreen() {
                 </View>
 
                 <View style={styles.formGroup}>
-                  <Text style={styles.label}>ስእሊ (Media - Optional)</Text>
-                  <TouchableOpacity style={styles.mediaBtn} onPress={pickMedia}>
+                  <Text
+                    style={[
+                      styles.label,
+                      { color: isDarkMode ? "#CCC" : "#777" },
+                    ]}
+                  >
+                    ስእሊ (Media - Optional)
+                  </Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.mediaBtn,
+                      {
+                        backgroundColor: isDarkMode
+                          ? "rgba(2, 158, 255, 0.1)"
+                          : "#e6f4f1",
+                      },
+                    ]}
+                    onPress={pickMedia}
+                  >
                     <Ionicons name="image" size={20} color="#029eff" />
                     <Text
                       style={{
@@ -612,7 +849,12 @@ export default function NewsScreen() {
                       size={24}
                       color="#029eff"
                     />
-                    <Text style={styles.checkboxLabel}>
+                    <Text
+                      style={[
+                        styles.checkboxLabel,
+                        { color: isDarkMode ? "#FFF" : "#333" },
+                      ]}
+                    >
                       ኣብ ላዕሊ ጠርኒፍካ ሓዞ (Pin to Top)
                     </Text>
                   </TouchableOpacity>
@@ -620,10 +862,23 @@ export default function NewsScreen() {
 
                 <View style={styles.btnGroup}>
                   <TouchableOpacity
-                    style={styles.btnCancel}
+                    style={[
+                      styles.btnCancel,
+                      {
+                        backgroundColor: isDarkMode ? "#2A2A2A" : "#fafafa",
+                        borderColor: isDarkMode ? "#333" : "#eee",
+                      },
+                    ]}
                     onPress={() => setShowCreateModal(false)}
                   >
-                    <Text style={styles.btnCancelText}>Cancel</Text>
+                    <Text
+                      style={[
+                        styles.btnCancelText,
+                        { color: isDarkMode ? "#FFF" : "#333" },
+                      ]}
+                    >
+                      Cancel
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.btnSave} onPress={submitPost}>
                     <Text style={styles.btnSaveText}>ለጥፍ (Post)</Text>
@@ -698,7 +953,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     position: "relative",
     overflow: "hidden",
-  }, // 💡 overflow hidden ን ስእሊ ጽፉፍ ክኸውን
+  },
   pinBadge: {
     position: "absolute",
     top: -10,
@@ -755,7 +1010,7 @@ const styles = StyleSheet.create({
     maxHeight: 350,
     overflow: "hidden",
   },
-  mediaImage: { width: "100%", height: 350, resizeMode: "cover" }, // 💡 ማጂክ: cover ን ምሉእ ጽፍፍቲ
+  mediaImage: { width: "100%", height: 350, resizeMode: "cover" },
 
   newsStats: {
     flexDirection: "row",

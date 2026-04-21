@@ -17,12 +17,15 @@ import {
   View,
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
+import { ThemeContext } from "../../context/ThemeContext"; // 💡 ሓዱሽ: ዳርክ ሞድ ሓንጎል መጸውዒ
 
 const API_BASE_URL = "https://meyda-app.onrender.com";
 
 export default function NotificationScreen() {
   const router = useRouter();
   const { user } = useContext(AuthContext);
+  // 💡 ማጂክ: ዳርክ ሞድ ሓንጎል ንጽውዕ (ብዘይ መጥወቒት)
+  const { isDarkMode } = useContext(ThemeContext);
 
   // ==========================================================
   // 🚀 ምዕራፍ 2: መኽዘን ኩነታት (State Management)
@@ -169,7 +172,6 @@ export default function NotificationScreen() {
   const markAllAsRead = async () => {
     const updated = allNotifications.map((n) => ({ ...n, isRead: true }));
     setAllNotifications(updated);
-    // 💡 ማጂክ: ናብ ሰርቨር ሪፖርት ምግባር (API endpoint needed)
     try {
       const token = await AsyncStorage.getItem("meydaToken");
       await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
@@ -180,7 +182,6 @@ export default function NotificationScreen() {
   };
 
   const handleNotificationClick = async (notif: any) => {
-    // 1. Mark as Read Optimistically
     if (!notif.isRead) {
       const updated = allNotifications.map((n) =>
         n.id === notif.id ? { ...n, isRead: true } : n,
@@ -195,7 +196,6 @@ export default function NotificationScreen() {
       } catch (e) {}
     }
 
-    // 2. 💡 ማጂክ: Deep Linking
     if (notif.type === "message") {
       router.push(`/chat/${notif.senderId}` as any);
     } else if (notif.type === "like" || notif.type === "comment") {
@@ -210,13 +210,38 @@ export default function NotificationScreen() {
   // 🚀 ምዕራፍ 6: ዲዛይን (Render UI)
   // ==========================================================
   const renderHeader = () => (
-    <View style={styles.headerWrapper}>
+    <View
+      style={[
+        styles.headerWrapper,
+        {
+          backgroundColor: isDarkMode ? "#1E1E1E" : "#fff",
+          shadowOpacity: isDarkMode ? 0.3 : 0.05,
+        },
+      ]}
+    >
       <View style={styles.topHeader}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>ኖቲፊኬሽን</Text>
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: isDarkMode ? "#FFF" : "#1a1a1a" },
+            ]}
+          >
+            ኖቲፊኬሽን
+          </Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.markReadBtn} onPress={markAllAsRead}>
+          <TouchableOpacity
+            style={[
+              styles.markReadBtn,
+              {
+                backgroundColor: isDarkMode
+                  ? "rgba(2, 158, 255, 0.15)"
+                  : "rgba(2, 158, 255, 0.1)",
+              },
+            ]}
+            onPress={markAllAsRead}
+          >
             <Ionicons name="checkmark-done" size={18} color="#029eff" />
             <Text style={styles.markReadText}> ኩሉ ኣንብብ</Text>
           </TouchableOpacity>
@@ -227,7 +252,7 @@ export default function NotificationScreen() {
             <Ionicons
               name={isSoundEnabled ? "volume-medium" : "volume-mute"}
               size={22}
-              color={isSoundEnabled ? "#029eff" : "#ccc"}
+              color={isSoundEnabled ? "#029eff" : isDarkMode ? "#666" : "#ccc"}
             />
           </TouchableOpacity>
         </View>
@@ -243,6 +268,7 @@ export default function NotificationScreen() {
             <Text
               style={[
                 styles.tabText,
+                { color: isDarkMode ? "#AAA" : "#888" },
                 currentFilter === tab && styles.tabTextActive,
               ]}
             >
@@ -303,7 +329,19 @@ export default function NotificationScreen() {
 
     return (
       <TouchableOpacity
-        style={[styles.notifItem, !item.isRead && styles.notifItemUnread]}
+        style={[
+          styles.notifItem,
+          { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+          !item.isRead && [
+            styles.notifItemUnread,
+            {
+              backgroundColor: isDarkMode
+                ? "rgba(2, 158, 255, 0.1)"
+                : "#eef7fd",
+              borderColor: isDarkMode ? "#029eff" : "rgba(2, 158, 255, 0.2)",
+            },
+          ],
+        ]}
         activeOpacity={0.7}
         onPress={() => handleNotificationClick(item)}
       >
@@ -317,15 +355,37 @@ export default function NotificationScreen() {
               color={iconConfig.color}
             />
           </View>
-          {!item.isRead && <View style={styles.unreadBadge} />}
+          {!item.isRead && (
+            <View
+              style={[
+                styles.unreadBadge,
+                { borderColor: isDarkMode ? "#1E1E1E" : "#eef7fd" },
+              ]}
+            />
+          )}
         </View>
 
         <View style={styles.notifContent}>
-          <Text style={styles.notifText}>
-            <Text style={styles.senderName}>{item.senderName} </Text>
+          <Text
+            style={[styles.notifText, { color: isDarkMode ? "#CCC" : "#444" }]}
+          >
+            <Text
+              style={[
+                styles.senderName,
+                { color: isDarkMode ? "#FFF" : "#111" },
+              ]}
+            >
+              {item.senderName}{" "}
+            </Text>
             {item.text}
           </Text>
-          <Text style={[styles.notifTime, !item.isRead && styles.notifTimeNew]}>
+          <Text
+            style={[
+              styles.notifTime,
+              { color: isDarkMode ? "#888" : "#999" },
+              !item.isRead && styles.notifTimeNew,
+            ]}
+          >
             {timeString}
           </Text>
         </View>
@@ -335,21 +395,38 @@ export default function NotificationScreen() {
 
   const renderSectionHeader = ({ section: { title } }: any) => (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text
+        style={[
+          styles.sectionTitle,
+          { color: isDarkMode ? "#888" : "#95a5a6" },
+        ]}
+      >
+        {title}
+      </Text>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: isDarkMode ? "#121212" : "#f9fbfd" },
+      ]}
+    >
       {renderHeader()}
       {loading ? (
-        <View style={styles.container}>
+        <View
+          style={[
+            styles.container,
+            { backgroundColor: isDarkMode ? "#121212" : "#f9fbfd" },
+          ]}
+        >
           <View
             style={[
               styles.notifItem,
               {
                 height: 80,
-                backgroundColor: "#e1e4e8",
+                backgroundColor: isDarkMode ? "#333" : "#e1e4e8",
                 opacity: 0.5,
                 marginVertical: 10,
               },
@@ -360,7 +437,7 @@ export default function NotificationScreen() {
               styles.notifItem,
               {
                 height: 80,
-                backgroundColor: "#e1e4e8",
+                backgroundColor: isDarkMode ? "#333" : "#e1e4e8",
                 opacity: 0.5,
                 marginVertical: 10,
               },
@@ -373,25 +450,43 @@ export default function NotificationScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderNotificationItem}
           renderSectionHeader={renderSectionHeader}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={{ paddingBottom: 80 }} // 💡 ታሕቲ ምእንቲ ከይሕባእ
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
               colors={["#029eff"]}
+              tintColor={isDarkMode ? "#029eff" : undefined}
             />
           }
           ListEmptyComponent={() => (
             <View style={styles.emptyState}>
-              <View style={styles.emptyIconBg}>
+              <View
+                style={[
+                  styles.emptyIconBg,
+                  { backgroundColor: isDarkMode ? "#1E1E1E" : "#f0f2f5" },
+                ]}
+              >
                 <Ionicons
                   name="notifications-off-outline"
                   size={50}
-                  color="#ccc"
+                  color={isDarkMode ? "#555" : "#ccc"}
                 />
               </View>
-              <Text style={styles.emptyTextTitle}>ዛጊት ኖቲፊኬሽን የለን</Text>
-              <Text style={styles.emptyTextSub}>
+              <Text
+                style={[
+                  styles.emptyTextTitle,
+                  { color: isDarkMode ? "#FFF" : "#333" },
+                ]}
+              >
+                ዛጊት ኖቲፊኬሽን የለን
+              </Text>
+              <Text
+                style={[
+                  styles.emptyTextSub,
+                  { color: isDarkMode ? "#AAA" : "#888" },
+                ]}
+              >
                 ሓዱሽ ሓበሬታ ምስ ዝህሉ ኣብዚ ክመጸኩም እዩ።
               </Text>
             </View>
@@ -406,7 +501,7 @@ export default function NotificationScreen() {
 // 🚀 ምዕራፍ 7: ዲዛይን (Styles)
 // ==========================================================
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fbfd" }, // 💡 ፈኲስ ጻዕዳ-ሰማያዊ ባክግራውንድ
+  container: { flex: 1, backgroundColor: "#f9fbfd" },
 
   headerWrapper: {
     backgroundColor: "#fff",

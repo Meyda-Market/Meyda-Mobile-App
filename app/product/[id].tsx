@@ -21,9 +21,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
+import { ThemeContext } from "../../context/ThemeContext"; // 💡 ሓዱሽ: ዳርክ ሞድ ሓንጎል
 
 const { width } = Dimensions.get("window");
 const API_BASE_URL = "https://meyda-app.onrender.com";
@@ -35,6 +36,7 @@ export default function ProductDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useContext(AuthContext);
+  const { isDarkMode } = useContext(ThemeContext); // 💡 ማጂክ: ዳርክ ሞድ ንጽውዕ
 
   const [product, setProduct] = useState<any>(null);
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
@@ -44,9 +46,8 @@ export default function ProductDetail() {
   const [activeImgIndex, setActiveImgIndex] = useState(0);
   const imgListRef = useRef<FlatList>(null);
 
-  // 💡 ማጂክ 2: ሓደስቲ መኽዘናት ን Save ን Report ን
-  const [isSaved, setIsSaved] = useState(false); // ልቢ ቀያሕ ንምግባር
-  const [showReportModal, setShowReportModal] = useState(false); // ሪፖርት ፖፕ-ኣፕ ንምኽፋት
+  const [isSaved, setIsSaved] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
 
   // ==========================================================
@@ -67,7 +68,6 @@ export default function ProductDetail() {
       );
       setProduct(singleProduct);
 
-      // 💡 ማጂክ: ቅድሚ ሕጂ ሴቭ ጌርናዮ እንተኔርና ልቢ ብቐይሕ ክትጅምር
       const myId = user?._id || user?.id;
       if (myId && singleProduct?.savedBy?.includes(myId)) {
         setIsSaved(true);
@@ -124,15 +124,13 @@ export default function ProductDetail() {
   // ==========================================================
   // 🚀 ምዕራፍ 5: ሓደስቲ ማጂካት ናይ (Save, Share, Report, Call, Msg)
   // ==========================================================
-
-  // 💡 ማጂክ: Save
   const handleToggleSave = async () => {
     if (!user) {
       Alert.alert("መዘኻኸሪ", "ንብረት ሴቭ ንምግባር መጀመርታ ሎግ-ኢን ግበሩ!");
       return;
     }
     const newSavedState = !isSaved;
-    setIsSaved(newSavedState); // ብኡንብኡ ኣብ ስክሪን ንቀይሮ (ቀይሕ ይኸውን)
+    setIsSaved(newSavedState);
 
     try {
       const myId = user._id || user.id;
@@ -152,12 +150,11 @@ export default function ProductDetail() {
     }
   };
 
-  // 💡 ማጂክ: Share
   const handleShare = async () => {
     try {
       const productName = product?.title || product?.name || "Meyda Product";
       const productPrice = product?.price ? `${product.price} Br` : "";
-      const appLink = `https://meyda-app.onrender.com/product/${id}`; // ናይ መጻኢ ዌብ ሊንክ
+      const appLink = `https://meyda-app.onrender.com/product/${id}`;
 
       await Share.share({
         message: `ርኣዮ እዚ ማራኺ ኣቕሓ ኣብ Meyda App!\n\n🛍️ ${productName}\n💰 ${productPrice}\n\nኣብዚ ክሊክ ጌርካ ርኣዮ:\n${appLink}`,
@@ -167,19 +164,16 @@ export default function ProductDetail() {
     }
   };
 
-  // 💡 ማጂክ: Submit Report
   const handleReportSubmit = () => {
     if (!reportReason.trim()) {
       Alert.alert("ጌጋ", "በጃኹም ምኽንያት ሪፖርትኹም ጽሓፉ።");
       return;
     }
-    // ኣብዚ ናብ ባክ-ኤንድ (API) ክስደድ ይኽእል እዩ
     setShowReportModal(false);
     setReportReason("");
     Alert.alert("ዕዉት", "ሪፖርትኹም ብዓወት ናብ ኣድሚን ተላኢኹ ኣሎ። የቐንየልና!");
   };
 
-  // መደወልን መልእኽትን
   const handleCall = () => {
     const phone = product?.phone || "+251900000000";
     Linking.openURL(`tel:${phone}`);
@@ -205,20 +199,52 @@ export default function ProductDetail() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: isDarkMode ? "#121212" : "#f5f8fa" },
+        ]}
+      >
         <Stack.Screen
           options={{
             title: "ይጽዓን ኣሎ...",
-            headerStyle: { backgroundColor: "#029eff" },
+            headerStyle: {
+              backgroundColor: isDarkMode ? "#1E1E1E" : "#029eff",
+            },
             headerTintColor: "#fff",
           }}
         />
-        <View style={styles.skeletonImage} />
+        <View
+          style={[
+            styles.skeletonImage,
+            { backgroundColor: isDarkMode ? "#333" : "#e1e4e8" },
+          ]}
+        />
         <View style={{ padding: 20 }}>
-          <View style={styles.skeletonTitle} />
-          <View style={styles.skeletonPrice} />
-          <View style={styles.skeletonDesc} />
-          <View style={styles.skeletonDesc} />
+          <View
+            style={[
+              styles.skeletonTitle,
+              { backgroundColor: isDarkMode ? "#333" : "#e1e4e8" },
+            ]}
+          />
+          <View
+            style={[
+              styles.skeletonPrice,
+              { backgroundColor: isDarkMode ? "#333" : "#e1e4e8" },
+            ]}
+          />
+          <View
+            style={[
+              styles.skeletonDesc,
+              { backgroundColor: isDarkMode ? "#333" : "#e1e4e8" },
+            ]}
+          />
+          <View
+            style={[
+              styles.skeletonDesc,
+              { backgroundColor: isDarkMode ? "#333" : "#e1e4e8" },
+            ]}
+          />
         </View>
       </View>
     );
@@ -226,8 +252,13 @@ export default function ProductDetail() {
 
   if (!product)
     return (
-      <View style={styles.loadingContainer}>
-        <Text>ኣቕሓ ኣይተረኽበን</Text>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: isDarkMode ? "#121212" : "#fff" },
+        ]}
+      >
+        <Text style={{ color: isDarkMode ? "#FFF" : "#000" }}>ኣቕሓ ኣይተረኽበን</Text>
       </View>
     );
 
@@ -235,12 +266,16 @@ export default function ProductDetail() {
   // 🚀 ምዕራፍ 6: ጠቕላላ ስክሪን (Main Render)
   // ==========================================================
   return (
-    <SafeAreaView style={styles.container}>
-      {/* 💡 1. ጽኑዕ ሰማያዊ ሄደር (Fixed Header - New Pro Functions Added) */}
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: isDarkMode ? "#121212" : "#f5f8fa" },
+      ]}
+    >
       <Stack.Screen
         options={{
           title: "ዝርዝር ኣቕሓ",
-          headerStyle: { backgroundColor: "#029eff" },
+          headerStyle: { backgroundColor: isDarkMode ? "#1E1E1E" : "#029eff" },
           headerTintColor: "#fff",
           headerLeft: () => (
             <TouchableOpacity
@@ -252,7 +287,6 @@ export default function ProductDetail() {
           ),
           headerRight: () => (
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              {/* 💡 Save (Heart) Button */}
               <TouchableOpacity
                 style={{ marginRight: 15 }}
                 onPress={handleToggleSave}
@@ -263,14 +297,12 @@ export default function ProductDetail() {
                   color={isSaved ? "#FF3B30" : "#fff"}
                 />
               </TouchableOpacity>
-              {/* 💡 Share Button */}
               <TouchableOpacity
                 style={{ marginRight: 15 }}
                 onPress={handleShare}
               >
                 <Ionicons name="share-social" size={22} color="#fff" />
               </TouchableOpacity>
-              {/* 💡 Report Button */}
               <TouchableOpacity onPress={() => setShowReportModal(true)}>
                 <Ionicons name="flag-outline" size={22} color="#FF3B30" />
               </TouchableOpacity>
@@ -283,7 +315,12 @@ export default function ProductDetail() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
-        <View style={styles.imageHeader}>
+        <View
+          style={[
+            styles.imageHeader,
+            { backgroundColor: isDarkMode ? "#000" : "#fff" },
+          ]}
+        >
           <FlatList
             ref={imgListRef}
             data={productImages}
@@ -296,7 +333,12 @@ export default function ProductDetail() {
               setActiveImgIndex(index);
             }}
             renderItem={({ item }) => (
-              <View style={styles.imageWrapper}>
+              <View
+                style={[
+                  styles.imageWrapper,
+                  { backgroundColor: isDarkMode ? "#000" : "#fff" },
+                ]}
+              >
                 <Image
                   source={{ uri: getImageUrl(item) }}
                   style={styles.mainImage}
@@ -311,17 +353,38 @@ export default function ProductDetail() {
           </View>
         </View>
 
-        <View style={styles.detailsContainer}>
+        <View
+          style={[
+            styles.detailsContainer,
+            { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+          ]}
+        >
           <Text style={styles.productPrice}>{product.price} Br</Text>
-          <Text style={styles.productTitle}>
+          <Text
+            style={[
+              styles.productTitle,
+              { color: isDarkMode ? "#FFF" : "#222" },
+            ]}
+          >
             {product.name || product.title}
           </Text>
 
           <View style={styles.metaRow}>
-            <Text style={styles.metaText}>
+            <Text
+              style={[styles.metaText, { color: isDarkMode ? "#AAA" : "#666" }]}
+            >
               📍 {product.location || "Tigray, Mekelle"}
             </Text>
-            <View style={styles.badge}>
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: isDarkMode
+                    ? "rgba(2, 158, 255, 0.15)"
+                    : "#E8F4FD",
+                },
+              ]}
+            >
               <Text style={styles.badgeText}>ሓዱሽ</Text>
             </View>
           </View>
@@ -330,8 +393,23 @@ export default function ProductDetail() {
             product.storage ||
             product.category === "mobile" ||
             product.category === "laptop") && (
-            <View style={styles.specsBox}>
-              <Text style={styles.specTitle}>ቴክኒካዊ ሓበሬታ (Specs):</Text>
+            <View
+              style={[
+                styles.specsBox,
+                {
+                  backgroundColor: isDarkMode ? "#2A2A2A" : "#f9f9f9",
+                  borderColor: isDarkMode ? "#444" : "#eee",
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.specTitle,
+                  { color: isDarkMode ? "#CCC" : "#555" },
+                ]}
+              >
+                ቴክኒካዊ ሓበሬታ (Specs):
+              </Text>
               <View style={styles.specGrid}>
                 <View style={styles.specItem}>
                   <Ionicons
@@ -339,13 +417,23 @@ export default function ProductDetail() {
                     size={14}
                     color="#029eff"
                   />
-                  <Text style={styles.specText}>
+                  <Text
+                    style={[
+                      styles.specText,
+                      { color: isDarkMode ? "#FFF" : "#333" },
+                    ]}
+                  >
                     RAM: {product.ram || "8 GB"}
                   </Text>
                 </View>
                 <View style={styles.specItem}>
                   <Ionicons name="save-outline" size={14} color="#029eff" />
-                  <Text style={styles.specText}>
+                  <Text
+                    style={[
+                      styles.specText,
+                      { color: isDarkMode ? "#FFF" : "#333" },
+                    ]}
+                  >
                     Storage: {product.storage || "256 GB"}
                   </Text>
                 </View>
@@ -353,7 +441,12 @@ export default function ProductDetail() {
             </View>
           )}
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: isDarkMode ? "#333" : "#f0f0f0" },
+            ]}
+          />
 
           <TouchableOpacity
             style={styles.vendorBox}
@@ -370,7 +463,12 @@ export default function ProductDetail() {
               style={styles.vendorPic}
             />
             <View style={styles.vendorInfo}>
-              <Text style={styles.vendorName}>
+              <Text
+                style={[
+                  styles.vendorName,
+                  { color: isDarkMode ? "#FFF" : "#333" },
+                ]}
+              >
                 {product.vendorName || "Meyda Vendor"}
               </Text>
               <Text style={styles.vendorStatus}>🟢 ኦንላይን ኣሎ</Text>
@@ -378,21 +476,48 @@ export default function ProductDetail() {
             <Ionicons name="chevron-forward" size={18} color="#029eff" />
           </TouchableOpacity>
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: isDarkMode ? "#333" : "#f0f0f0" },
+            ]}
+          />
 
-          <Text style={styles.sectionTitle}>መግለጺ (Description)</Text>
-          <Text style={styles.description}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: isDarkMode ? "#FFF" : "#333" },
+            ]}
+          >
+            መግለጺ (Description)
+          </Text>
+          <Text
+            style={[
+              styles.description,
+              { color: isDarkMode ? "#CCC" : "#555" },
+            ]}
+          >
             {product.description ||
               "ናይዚ ኣቕሓ ዝርዝር መግለጺ ኣብዚ ይኣቱ። ጽቡቕ ጽሬት ዘለዎ ምህርቲ እዩ።"}
           </Text>
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: isDarkMode ? "#333" : "#f0f0f0" },
+            ]}
+          />
 
           <TouchableOpacity
             style={styles.commentToggleBtn}
             onPress={() => setShowComments(!showComments)}
           >
-            <Text style={styles.sectionTitle}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: isDarkMode ? "#FFF" : "#333" },
+              ]}
+            >
               ርእይቶታት (Comments) {showComments ? "▲" : "▼"}
             </Text>
           </TouchableOpacity>
@@ -403,21 +528,53 @@ export default function ProductDetail() {
                 source={{ uri: "https://via.placeholder.com/40" }}
                 style={styles.commenterPic}
               />
-              <View style={styles.commentContent}>
+              <View
+                style={[
+                  styles.commentContent,
+                  {
+                    backgroundColor: isDarkMode ? "#2A2A2A" : "#f9f9f9",
+                    borderColor: isDarkMode ? "#444" : "#eee",
+                  },
+                ]}
+              >
                 <Text style={styles.commenterName}>ኣማኑኤል ተስፋይ</Text>
-                <Text style={styles.commentText}>
+                <Text
+                  style={[
+                    styles.commentText,
+                    { color: isDarkMode ? "#CCC" : "#444" },
+                  ]}
+                >
                   ዋጋ ናይ መወዳእታ ክንደይ እዩ? ሎሚ ክወስዶ ደልየ ኔረ።
                 </Text>
                 <TouchableOpacity>
-                  <Text style={styles.replyText}>↪️ ሪፕለይ (Reply)</Text>
+                  <Text
+                    style={[
+                      styles.replyText,
+                      { color: isDarkMode ? "#888" : "#666" },
+                    ]}
+                  >
+                    ↪️ ሪፕለይ (Reply)
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
           )}
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: isDarkMode ? "#333" : "#f0f0f0" },
+            ]}
+          />
 
-          <Text style={styles.sectionTitle}>ተመሳሰልቲ ምህርትታት</Text>
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: isDarkMode ? "#FFF" : "#333" },
+            ]}
+          >
+            ተመሳሰልቲ ምህርትታት
+          </Text>
           {relatedProducts.length > 0 ? (
             <ScrollView
               horizontal
@@ -427,7 +584,13 @@ export default function ProductDetail() {
               {relatedProducts.slice(0, 10).map((simProduct: any) => (
                 <TouchableOpacity
                   key={simProduct._id}
-                  style={styles.similarCard}
+                  style={[
+                    styles.similarCard,
+                    {
+                      backgroundColor: isDarkMode ? "#2A2A2A" : "#fff",
+                      borderColor: isDarkMode ? "#444" : "#eee",
+                    },
+                  ]}
                   onPress={() =>
                     router.push(`/product/${simProduct._id}` as any)
                   }
@@ -444,7 +607,13 @@ export default function ProductDetail() {
                   <Text style={styles.similarPrice} numberOfLines={1}>
                     {simProduct.price} Br
                   </Text>
-                  <Text style={styles.similarName} numberOfLines={1}>
+                  <Text
+                    style={[
+                      styles.similarName,
+                      { color: isDarkMode ? "#CCC" : "#333" },
+                    ]}
+                    numberOfLines={1}
+                  >
                     {simProduct.name || simProduct.title}
                   </Text>
                 </TouchableOpacity>
@@ -475,11 +644,30 @@ export default function ProductDetail() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.reportModalOverlay}
         >
-          <View style={styles.reportModalContent}>
-            <Text style={styles.reportTitle}>🚩 ኣቕሓ ሪፖርት ግበር</Text>
+          <View
+            style={[
+              styles.reportModalContent,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <Text
+              style={[
+                styles.reportTitle,
+                { color: isDarkMode ? "#FFF" : "#333" },
+              ]}
+            >
+              🚩 ኣቕሓ ሪፖርት ግበር
+            </Text>
             <TextInput
-              style={styles.reportInput}
+              style={[
+                styles.reportInput,
+                {
+                  backgroundColor: isDarkMode ? "#2A2A2A" : "#f0f2f5",
+                  color: isDarkMode ? "#FFF" : "#333",
+                },
+              ]}
               placeholder="ስለምንታይ ሪፖርት ትገብሮ ኣለኻ? ምኽንያትካ ጽሓፍ..."
+              placeholderTextColor={isDarkMode ? "#888" : "#999"}
               multiline
               value={reportReason}
               onChangeText={setReportReason}
@@ -492,7 +680,14 @@ export default function ProductDetail() {
                   setReportReason("");
                 }}
               >
-                <Text style={styles.reportCancelText}>ኣቋርጽ</Text>
+                <Text
+                  style={[
+                    styles.reportCancelText,
+                    { color: isDarkMode ? "#AAA" : "#777" },
+                  ]}
+                >
+                  ኣቋርጽ
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.reportSubmitBtn}
@@ -724,7 +919,6 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
 
-  // 💡 ሓዱሽ ሪፖርት ፖፕ-ኣፕ (Report Modal Styles)
   reportModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",

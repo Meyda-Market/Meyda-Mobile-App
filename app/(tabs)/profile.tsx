@@ -1,30 +1,28 @@
 // ==========================================================
 // 🚀 ምዕራፍ 1: መእተዊ (Imports)
 // ==========================================================
-import {
-    Ionicons,
-    MaterialCommunityIcons
-} from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker"; // 👈 ሓዱሽ ማጂክ: ካሜራ/ጋለሪ መኽፈቲ
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useContext, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Image,
-    Modal,
-    Platform,
-    SafeAreaView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  Platform,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
+import { ThemeContext } from "../../context/ThemeContext"; // 💡 ሓዱሽ: ዳርክ ሞድ ሓንጎል መጸውዒ
 
 const { width } = Dimensions.get("window");
 const API_BASE_URL = "https://meyda-app.onrender.com";
@@ -32,13 +30,15 @@ const API_BASE_URL = "https://meyda-app.onrender.com";
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useContext(AuthContext);
+  // 💡 ማጂክ: ዳርክ ሞድ ሓንጎል ንጽውዕ (ብዘይ መጥወቒት)
+  const { isDarkMode } = useContext(ThemeContext);
 
   // 💡 መኽዘን ኩነታት (Modals)
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [editProfileVisible, setEditProfileVisible] = useState(false);
   const [socialLinksVisible, setSocialLinksVisible] = useState(false);
-  const [passwordVisible, setPasswordVisible] = useState(false); // 👈 ሓዱሽ
-  const [emailVisible, setEmailVisible] = useState(false); // 👈 ሓዱሽ
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [emailVisible, setEmailVisible] = useState(false);
 
   const [activeTab, setActiveTab] = useState("ads"); // 'ads' | 'saved' | 'messages'
 
@@ -99,7 +99,6 @@ export default function ProfileScreen() {
         allMsgs.forEach((m: any) => {
           const isMe = String(m.senderId) === String(myId);
           const partnerId = isMe ? m.receiverId : m.senderId;
-          // 💡 ስም ንምርካብ ብትኽክል ይፍትን (senderName ወይ receiverName)
           const partnerName = isMe
             ? m.receiverName || "ዓሚል (Customer)"
             : m.senderName || "ሸያጢ (Seller)";
@@ -176,7 +175,6 @@ export default function ProfileScreen() {
     );
   };
 
-  // 💡 ሓዱሽ ማጂክ: ጋለሪ መኽፈቲ (Image Picker)
   const pickImage = async (type: string) => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -215,8 +213,18 @@ export default function ProfileScreen() {
   // 🚀 ምዕራፍ 4: ዲዛይን ላዕለዋይ ክፋል (Profile Header)
   // ==========================================================
   const renderHeader = () => (
-    <View style={styles.headerContainer}>
-      <View style={styles.topBar}>
+    <View
+      style={[
+        styles.headerContainer,
+        { backgroundColor: isDarkMode ? "#121212" : "#fff" },
+      ]}
+    >
+      <View
+        style={[
+          styles.topBar,
+          { backgroundColor: isDarkMode ? "#1E1E1E" : "#029eff" },
+        ]}
+      >
         <View style={styles.topLeft}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -232,7 +240,6 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.coverContainer}>
-        {/* 💡 ባነር ካብ Local ወይ ዳታቤዝ */}
         <Image
           source={{
             uri:
@@ -255,8 +262,12 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.avatarSection}>
-        <View style={styles.avatarWrapper}>
-          {/* 💡 ፕሮፋይል ስእሊ ካብ Local ወይ ዳታቤዝ */}
+        <View
+          style={[
+            styles.avatarWrapper,
+            { backgroundColor: isDarkMode ? "#121212" : "#fff" },
+          ]}
+        >
           <Image
             source={{
               uri:
@@ -265,10 +276,16 @@ export default function ProfileScreen() {
                   ? getImageUrl(user.profilePic)
                   : "https://via.placeholder.com/150"),
             }}
-            style={styles.avatarImage}
+            style={[
+              styles.avatarImage,
+              { backgroundColor: isDarkMode ? "#333" : "#eee" },
+            ]}
           />
           <TouchableOpacity
-            style={styles.profileCameraBtn}
+            style={[
+              styles.profileCameraBtn,
+              { borderColor: isDarkMode ? "#121212" : "#fff" },
+            ]}
             onPress={() => pickImage("ፕሮፋይል")}
           >
             <Ionicons name="camera" size={16} color="#fff" />
@@ -285,30 +302,67 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.infoSection}>
-        <Text style={styles.nameText}>{user?.name || "Meyda Store"}</Text>
-        <Text style={styles.bioText}>
+        <Text
+          style={[styles.nameText, { color: isDarkMode ? "#FFF" : "#333" }]}
+        >
+          {user?.name || "Meyda Store"}
+        </Text>
+        <Text style={[styles.bioText, { color: isDarkMode ? "#CCC" : "#666" }]}>
           {user?.bio || "እንቋዕ ብደሓን መጻእኩም ናብ ድኳነይ።"}
         </Text>
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>
+            <Text
+              style={[
+                styles.statNumber,
+                { color: isDarkMode ? "#FFF" : "#333" },
+              ]}
+            >
               {user?.followers?.length || 0}
             </Text>
-            <Text style={styles.statLabel}>Followers</Text>
+            <Text
+              style={[
+                styles.statLabel,
+                { color: isDarkMode ? "#AAA" : "#666" },
+              ]}
+            >
+              Followers
+            </Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>
+            <Text
+              style={[
+                styles.statNumber,
+                { color: isDarkMode ? "#FFF" : "#333" },
+              ]}
+            >
               {user?.following?.length || 0}
             </Text>
-            <Text style={styles.statLabel}>Following</Text>
+            <Text
+              style={[
+                styles.statLabel,
+                { color: isDarkMode ? "#AAA" : "#666" },
+              ]}
+            >
+              Following
+            </Text>
           </View>
         </View>
       </View>
 
-      <View style={styles.actionTabsRow}>
+      <View
+        style={[
+          styles.actionTabsRow,
+          { borderColor: isDarkMode ? "#333" : "#f0f0f0" },
+        ]}
+      >
         <TouchableOpacity
-          style={[styles.iconTab, activeTab === "ads" && styles.activeTabBg]}
+          style={[
+            styles.iconTab,
+            { backgroundColor: isDarkMode ? "#1E1E1E" : "#f0f8ff" },
+            activeTab === "ads" && styles.activeTabBg,
+          ]}
           onPress={() => setActiveTab("ads")}
         >
           <Ionicons
@@ -318,7 +372,11 @@ export default function ProfileScreen() {
           />
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.iconTab, activeTab === "saved" && styles.activeTabBg]}
+          style={[
+            styles.iconTab,
+            { backgroundColor: isDarkMode ? "#1E1E1E" : "#f0f8ff" },
+            activeTab === "saved" && styles.activeTabBg,
+          ]}
           onPress={() => setActiveTab("saved")}
         >
           <Ionicons
@@ -330,6 +388,7 @@ export default function ProfileScreen() {
         <TouchableOpacity
           style={[
             styles.iconTab,
+            { backgroundColor: isDarkMode ? "#1E1E1E" : "#f0f8ff" },
             activeTab === "messages" && styles.activeTabBg,
           ]}
           onPress={() => setActiveTab("messages")}
@@ -349,7 +408,13 @@ export default function ProfileScreen() {
   // ==========================================================
   const renderProduct = ({ item }: any) => (
     <TouchableOpacity
-      style={styles.gridCard}
+      style={[
+        styles.gridCard,
+        {
+          backgroundColor: isDarkMode ? "#1E1E1E" : "#f9f9f9",
+          borderColor: isDarkMode ? "#333" : "#eee",
+        },
+      ]}
       activeOpacity={0.8}
       onPress={() => router.push(`/product/${item._id}` as any)}
     >
@@ -362,34 +427,59 @@ export default function ProfileScreen() {
         <View
           style={{
             flex: 1,
-            backgroundColor: "#eee",
+            backgroundColor: isDarkMode ? "#333" : "#eee",
             justifyContent: "center",
             alignItems: "center",
           }}
         >
-          <Ionicons name="image-outline" size={30} color="#ccc" />
+          <Ionicons
+            name="image-outline"
+            size={30}
+            color={isDarkMode ? "#666" : "#ccc"}
+          />
         </View>
       )}
-      <View style={styles.priceOverlay}>
-        <Text style={styles.priceText}>{item.price} Br</Text>
+      <View
+        style={[
+          styles.priceOverlay,
+          {
+            backgroundColor: isDarkMode
+              ? "rgba(0,0,0,0.8)"
+              : "rgba(255,255,255,0.9)",
+          },
+        ]}
+      >
+        <Text
+          style={[styles.priceText, { color: isDarkMode ? "#FFF" : "#333" }]}
+        >
+          {item.price} Br
+        </Text>
       </View>
     </TouchableOpacity>
   );
 
-  // 💡 ሓዱሽ ማጂክ: ናይ ሜሰጅ ኣይተም ምስ ክሊክ ናይ ፕሮፋይል ስእሊ
   const renderMessageItem = ({ item }: any) => (
-    <View style={styles.chatItem}>
-      {/* ናብ ፕሮፋይሉ ዝወስድ መጥወቒት (Profile Avatar Click) */}
+    <View
+      style={[
+        styles.chatItem,
+        {
+          backgroundColor: isDarkMode ? "#121212" : "#fff",
+          borderBottomColor: isDarkMode ? "#333" : "#eee",
+        },
+      ]}
+    >
       <TouchableOpacity
         onPress={() => router.push(`/profile/${item.id}` as any)}
       >
         <Image
           source={{ uri: item.avatar || "https://via.placeholder.com/150" }}
-          style={styles.chatAvatarImage}
+          style={[
+            styles.chatAvatarImage,
+            { backgroundColor: isDarkMode ? "#333" : "#eee" },
+          ]}
         />
       </TouchableOpacity>
 
-      {/* ናብ ዕላል ዝወስድ መጥወቒት (Chat Content Click) */}
       <TouchableOpacity
         style={styles.chatInfo}
         onPress={() =>
@@ -399,14 +489,25 @@ export default function ProfileScreen() {
           } as any)
         }
       >
-        <Text style={styles.chatName}>{item.name}</Text>
-        <Text style={styles.chatText} numberOfLines={1}>
+        <Text
+          style={[styles.chatName, { color: isDarkMode ? "#FFF" : "#333" }]}
+        >
+          {item.name}
+        </Text>
+        <Text
+          style={[styles.chatText, { color: isDarkMode ? "#CCC" : "#666" }]}
+          numberOfLines={1}
+        >
           {item.text}
         </Text>
       </TouchableOpacity>
 
       <View style={styles.chatMeta}>
-        <Text style={styles.chatTime}>{item.time}</Text>
+        <Text
+          style={[styles.chatTime, { color: isDarkMode ? "#888" : "#999" }]}
+        >
+          {item.time}
+        </Text>
         {item.unread > 0 && (
           <View style={styles.unreadBadge}>
             <Text style={styles.unreadText}>{item.unread}</Text>
@@ -420,10 +521,20 @@ export default function ProfileScreen() {
   // 🚀 ምዕራፍ 6: ጠቕላላ ስክሪን (Main Render)
   // ==========================================================
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: isDarkMode ? "#121212" : "#fff" },
+      ]}
+    >
       {loading ? (
         <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: isDarkMode ? "#121212" : "#fff",
+          }}
         >
           <ActivityIndicator size="large" color="#029eff" />
         </View>
@@ -452,80 +563,194 @@ export default function ProfileScreen() {
                       : "chatbubbles-outline"
                 }
                 size={50}
-                color="#ccc"
+                color={isDarkMode ? "#444" : "#ccc"}
               />
-              <Text style={styles.emptyText}>ዛጊት ዳታ የለን።</Text>
+              <Text
+                style={[
+                  styles.emptyText,
+                  { color: isDarkMode ? "#888" : "#999" },
+                ]}
+              >
+                ዛጊት ዳታ የለን።
+              </Text>
             </View>
           )}
         />
       )}
 
-      {/* 🚀 ማጂክ ሴቲንግስ (Settings Menu Modal) - ሙሉእ 7 መማረጺታት! */}
+      {/* ==========================================================
+          🚀 ምዕራፍ 7: MODALS (ፖፕ-ኣፕታት) 
+          ========================================================== */}
+
       <Modal visible={settingsVisible} transparent={true} animationType="slide">
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setSettingsVisible(false)}
         >
-          <View style={styles.modalContent}>
-            <View style={styles.modalDragHandler} />
-            <Text style={styles.modalTitle}>Settings</Text>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalDragHandler,
+                { backgroundColor: isDarkMode ? "#555" : "#ccc" },
+              ]}
+            />
+            <Text
+              style={[
+                styles.modalTitle,
+                { color: isDarkMode ? "#FFF" : "#333" },
+              ]}
+            >
+              Settings
+            </Text>
 
             <TouchableOpacity
-              style={styles.modalItem}
+              style={[
+                styles.modalItem,
+                { borderBottomColor: isDarkMode ? "#333" : "#eee" },
+              ]}
               onPress={handleSwitchAccount}
             >
-              <Ionicons name="swap-horizontal-outline" size={22} color="#333" />
-              <Text style={styles.modalItemText}>Switch account</Text>
+              <Ionicons
+                name="swap-horizontal-outline"
+                size={22}
+                color={isDarkMode ? "#CCC" : "#333"}
+              />
+              <Text
+                style={[
+                  styles.modalItemText,
+                  { color: isDarkMode ? "#CCC" : "#333" },
+                ]}
+              >
+                Switch account
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.modalItem}
+              style={[
+                styles.modalItem,
+                { borderBottomColor: isDarkMode ? "#333" : "#eee" },
+              ]}
               onPress={() => {
                 setSettingsVisible(false);
                 setEditProfileVisible(true);
               }}
             >
-              <Ionicons name="person-outline" size={22} color="#333" />
-              <Text style={styles.modalItemText}>Edit Profile (ስምን ባዮን)</Text>
+              <Ionicons
+                name="person-outline"
+                size={22}
+                color={isDarkMode ? "#CCC" : "#333"}
+              />
+              <Text
+                style={[
+                  styles.modalItemText,
+                  { color: isDarkMode ? "#CCC" : "#333" },
+                ]}
+              >
+                Edit Profile (ስምን ባዮን)
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.modalItem}
+              style={[
+                styles.modalItem,
+                { borderBottomColor: isDarkMode ? "#333" : "#eee" },
+              ]}
               onPress={() => {
                 setSettingsVisible(false);
                 setSocialLinksVisible(true);
               }}
             >
-              <Ionicons name="link-outline" size={22} color="#333" />
-              <Text style={styles.modalItemText}>Add Social Links</Text>
+              <Ionicons
+                name="link-outline"
+                size={22}
+                color={isDarkMode ? "#CCC" : "#333"}
+              />
+              <Text
+                style={[
+                  styles.modalItemText,
+                  { color: isDarkMode ? "#CCC" : "#333" },
+                ]}
+              >
+                Add Social Links
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.modalItem}
+              style={[
+                styles.modalItem,
+                { borderBottomColor: isDarkMode ? "#333" : "#eee" },
+              ]}
               onPress={() => {
                 setSettingsVisible(false);
                 setPasswordVisible(true);
               }}
             >
-              <Ionicons name="lock-closed-outline" size={22} color="#333" />
-              <Text style={styles.modalItemText}>Change password</Text>
+              <Ionicons
+                name="lock-closed-outline"
+                size={22}
+                color={isDarkMode ? "#CCC" : "#333"}
+              />
+              <Text
+                style={[
+                  styles.modalItemText,
+                  { color: isDarkMode ? "#CCC" : "#333" },
+                ]}
+              >
+                Change password
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.modalItem}
+              style={[
+                styles.modalItem,
+                { borderBottomColor: isDarkMode ? "#333" : "#eee" },
+              ]}
               onPress={() => {
                 setSettingsVisible(false);
                 setEmailVisible(true);
               }}
             >
-              <Ionicons name="mail-outline" size={22} color="#333" />
-              <Text style={styles.modalItemText}>Change email</Text>
+              <Ionicons
+                name="mail-outline"
+                size={22}
+                color={isDarkMode ? "#CCC" : "#333"}
+              />
+              <Text
+                style={[
+                  styles.modalItemText,
+                  { color: isDarkMode ? "#CCC" : "#333" },
+                ]}
+              >
+                Change email
+              </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.modalItem} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={22} color="#333" />
-              <Text style={styles.modalItemText}>Log out</Text>
+            <TouchableOpacity
+              style={[
+                styles.modalItem,
+                { borderBottomColor: isDarkMode ? "#333" : "#eee" },
+              ]}
+              onPress={handleLogout}
+            >
+              <Ionicons
+                name="log-out-outline"
+                size={22}
+                color={isDarkMode ? "#CCC" : "#333"}
+              />
+              <Text
+                style={[
+                  styles.modalItemText,
+                  { color: isDarkMode ? "#CCC" : "#333" },
+                ]}
+              >
+                Log out
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -541,34 +766,70 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* 🚀 ማጂክ ኤዲት ፕሮፋይል */}
       <Modal
         visible={editProfileVisible}
         transparent={true}
         animationType="slide"
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.formContent}>
-            <Text style={styles.formTitle}>Edit Profile</Text>
+          <View
+            style={[
+              styles.formContent,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <Text
+              style={[
+                styles.formTitle,
+                { color: isDarkMode ? "#FFF" : "#333" },
+              ]}
+            >
+              Edit Profile
+            </Text>
             <TextInput
-              style={styles.inputField}
+              style={[
+                styles.inputField,
+                {
+                  backgroundColor: isDarkMode ? "#2A2A2A" : "#f0f2f5",
+                  color: isDarkMode ? "#FFF" : "#333",
+                },
+              ]}
               placeholder="ስምካ ጽሓፍ"
+              placeholderTextColor={isDarkMode ? "#888" : "#999"}
               value={editName}
               onChangeText={setEditName}
             />
             <TextInput
-              style={[styles.inputField, { height: 80 }]}
+              style={[
+                styles.inputField,
+                {
+                  height: 80,
+                  backgroundColor: isDarkMode ? "#2A2A2A" : "#f0f2f5",
+                  color: isDarkMode ? "#FFF" : "#333",
+                },
+              ]}
               placeholder="ባዮ ጽሓፍ (ብዛዕባ ድኳንካ)..."
+              placeholderTextColor={isDarkMode ? "#888" : "#999"}
               value={editBio}
               onChangeText={setEditBio}
               multiline
             />
             <View style={styles.formActions}>
               <TouchableOpacity
-                style={styles.cancelBtn}
+                style={[
+                  styles.cancelBtn,
+                  { backgroundColor: isDarkMode ? "#2A2A2A" : "#f0f2f5" },
+                ]}
                 onPress={() => setEditProfileVisible(false)}
               >
-                <Text style={styles.cancelText}>ኣቋርጽ</Text>
+                <Text
+                  style={[
+                    styles.cancelText,
+                    { color: isDarkMode ? "#CCC" : "#666" },
+                  ]}
+                >
+                  ኣቋርጽ
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.saveBtn}
@@ -584,33 +845,68 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
-      {/* 🚀 ማጂክ ሶሻል ሊንክስ */}
       <Modal
         visible={socialLinksVisible}
         transparent={true}
         animationType="slide"
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.formContent}>
-            <Text style={styles.formTitle}>Add Social Links</Text>
+          <View
+            style={[
+              styles.formContent,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <Text
+              style={[
+                styles.formTitle,
+                { color: isDarkMode ? "#FFF" : "#333" },
+              ]}
+            >
+              Add Social Links
+            </Text>
             <TextInput
-              style={styles.inputField}
+              style={[
+                styles.inputField,
+                {
+                  backgroundColor: isDarkMode ? "#2A2A2A" : "#f0f2f5",
+                  color: isDarkMode ? "#FFF" : "#333",
+                },
+              ]}
               placeholder="Facebook Link"
+              placeholderTextColor={isDarkMode ? "#888" : "#999"}
               value={editFb}
               onChangeText={setEditFb}
             />
             <TextInput
-              style={styles.inputField}
+              style={[
+                styles.inputField,
+                {
+                  backgroundColor: isDarkMode ? "#2A2A2A" : "#f0f2f5",
+                  color: isDarkMode ? "#FFF" : "#333",
+                },
+              ]}
               placeholder="YouTube Link"
+              placeholderTextColor={isDarkMode ? "#888" : "#999"}
               value={editYt}
               onChangeText={setEditYt}
             />
             <View style={styles.formActions}>
               <TouchableOpacity
-                style={styles.cancelBtn}
+                style={[
+                  styles.cancelBtn,
+                  { backgroundColor: isDarkMode ? "#2A2A2A" : "#f0f2f5" },
+                ]}
                 onPress={() => setSocialLinksVisible(false)}
               >
-                <Text style={styles.cancelText}>ኣቋርጽ</Text>
+                <Text
+                  style={[
+                    styles.cancelText,
+                    { color: isDarkMode ? "#CCC" : "#666" },
+                  ]}
+                >
+                  ኣቋርጽ
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.saveBtn}
@@ -626,31 +922,66 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
-      {/* 🚀 ሓዱሽ ማጂክ: ፓስዎርድ መቐየሪ (Change Password) */}
       <Modal visible={passwordVisible} transparent={true} animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.formContent}>
-            <Text style={styles.formTitle}>Change Password</Text>
+          <View
+            style={[
+              styles.formContent,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <Text
+              style={[
+                styles.formTitle,
+                { color: isDarkMode ? "#FFF" : "#333" },
+              ]}
+            >
+              Change Password
+            </Text>
             <TextInput
-              style={styles.inputField}
+              style={[
+                styles.inputField,
+                {
+                  backgroundColor: isDarkMode ? "#2A2A2A" : "#f0f2f5",
+                  color: isDarkMode ? "#FFF" : "#333",
+                },
+              ]}
               placeholder="ናይ ሕጂ ፓስዎርድ (Old)"
+              placeholderTextColor={isDarkMode ? "#888" : "#999"}
               value={oldPassword}
               onChangeText={setOldPassword}
               secureTextEntry
             />
             <TextInput
-              style={styles.inputField}
+              style={[
+                styles.inputField,
+                {
+                  backgroundColor: isDarkMode ? "#2A2A2A" : "#f0f2f5",
+                  color: isDarkMode ? "#FFF" : "#333",
+                },
+              ]}
               placeholder="ሓዱሽ ፓስዎርድ (New)"
+              placeholderTextColor={isDarkMode ? "#888" : "#999"}
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
             />
             <View style={styles.formActions}>
               <TouchableOpacity
-                style={styles.cancelBtn}
+                style={[
+                  styles.cancelBtn,
+                  { backgroundColor: isDarkMode ? "#2A2A2A" : "#f0f2f5" },
+                ]}
                 onPress={() => setPasswordVisible(false)}
               >
-                <Text style={styles.cancelText}>ኣቋርጽ</Text>
+                <Text
+                  style={[
+                    styles.cancelText,
+                    { color: isDarkMode ? "#CCC" : "#666" },
+                  ]}
+                >
+                  ኣቋርጽ
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.saveBtn}
@@ -666,24 +997,52 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
-      {/* 🚀 ሓዱሽ ማጂክ: ኢሜል መቐየሪ (Change Email) */}
       <Modal visible={emailVisible} transparent={true} animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.formContent}>
-            <Text style={styles.formTitle}>Change Email</Text>
+          <View
+            style={[
+              styles.formContent,
+              { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            ]}
+          >
+            <Text
+              style={[
+                styles.formTitle,
+                { color: isDarkMode ? "#FFF" : "#333" },
+              ]}
+            >
+              Change Email
+            </Text>
             <TextInput
-              style={styles.inputField}
+              style={[
+                styles.inputField,
+                {
+                  backgroundColor: isDarkMode ? "#2A2A2A" : "#f0f2f5",
+                  color: isDarkMode ? "#FFF" : "#333",
+                },
+              ]}
               placeholder="ሓዱሽ ኢሜል"
+              placeholderTextColor={isDarkMode ? "#888" : "#999"}
               value={newEmail}
               onChangeText={setNewEmail}
               keyboardType="email-address"
             />
             <View style={styles.formActions}>
               <TouchableOpacity
-                style={styles.cancelBtn}
+                style={[
+                  styles.cancelBtn,
+                  { backgroundColor: isDarkMode ? "#2A2A2A" : "#f0f2f5" },
+                ]}
                 onPress={() => setEmailVisible(false)}
               >
-                <Text style={styles.cancelText}>ኣቋርጽ</Text>
+                <Text
+                  style={[
+                    styles.cancelText,
+                    { color: isDarkMode ? "#CCC" : "#666" },
+                  ]}
+                >
+                  ኣቋርጽ
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.saveBtn}
@@ -703,7 +1062,7 @@ export default function ProfileScreen() {
 }
 
 // ==========================================================
-// 🚀 ምዕራፍ 7: ዲዛይን (Styles)
+// 🚀 ምዕራፍ 8: ዲዛይን (Styles)
 // ==========================================================
 const styles = StyleSheet.create({
   container: {
@@ -862,7 +1221,7 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     backgroundColor: "#eee",
-  }, // 👈 ሓዱሽ: ስእሊ ናይቲ ሰብ
+  },
   chatInfo: { flex: 1, marginLeft: 15 },
   chatName: {
     fontSize: 16,
