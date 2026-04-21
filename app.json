@@ -3,6 +3,14 @@
     "name": "meyda-mobile",
     "slug": "meyda-mobile",
     "version": "1.0.0",
+    "androidStatusBar": {
+      "backgroundColor": "#000000",
+      "barStyle": "light-content"
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#000000",
+      "barStyle": "light-content"
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "meydamobile",
@@ -33,7 +41,7 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#000000",
           "dark": {
             "backgroundColor": "#000000"
           }

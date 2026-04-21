@@ -21,21 +21,25 @@ export default function TabLayout() {
         headerShown: false, // ላዕለዋይ ርእሲ ንምጥፋእ
 
         // 💡 ኣብ ኣየር ዝንሳፈፍ ማራኺ ዲዛይን (Floating Tab Bar)
+
+        // 💡 ማጂክ 2: ካብ ታሕቲ ዝነበረ ክፍተት ተዓጽዩ፣ የማንን ጸጋምን ምሉእ ስክሪን ሒዙ ኣሎ!
         tabBarStyle: {
           position: "absolute",
-          bottom: Platform.OS === "android" ? 15 : 25, // ካብ ታሕተዋይ ቆፎ ንምርሓቕ
-          left: 20,
-          right: 20,
-          // 💡 ማጂክ: ባክግራውንድ ናይ ታብ ዳርክ ሞድ ይለብስ (ፈኲስ ጸሊም #1E1E1E)
+          bottom: 0, // 👈 ክፍተት ጠፊኡ ናብ ታሕቲ ተለጢጡ!
+          left: 0, // 👈 የማንን ጸጋምን ምሉእ ኮይኑ
+          right: 0,
           backgroundColor: isDarkMode ? "#1E1E1E" : "#ffffff",
-          borderRadius: 10, // ጽቡቕ ክቢ (Pill shape)
-          height: 65,
+          borderTopLeftRadius: 6, // 👈 ላዕለዋይ ክፋል ጥራሕ ማራኺ ክቢ ይኸውን
+          borderTopRightRadius: 6,
+          borderBottomLeftRadius: 0, // 👈 ታሕተዋይ ክፋል ትኽ ይብል (ክፍተት ይዓጹ)
+          borderBottomRightRadius: 0,
+          height: Platform.OS === "ios" ? 85 : 65, // 👈 ንታሕቲ ብግቡእ ንኽሽፍን
           borderTopWidth: 0,
-          elevation: 10, // ናይ ኣንድሮይድ ጽላሎት (Shadow)
+          elevation: 10,
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: 5 },
-          shadowOpacity: isDarkMode ? 0.4 : 0.15, // 💡 ኣብ ጸልማት ጽላሎት ምእንቲ ክረአ
-          shadowRadius: 10,
+          shadowOffset: { width: 0, height: -3 }, // 👈 ጽላሎት ናብ ላዕሊ ይኸውን
+          shadowOpacity: isDarkMode ? 0.4 : 0.1,
+          shadowRadius: 5,
         },
       }}
     >
@@ -112,9 +116,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
-      {/* 💡 ነታ 6ይቲ ባዶ ሳጹን ንምሕባእ */}
-      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }

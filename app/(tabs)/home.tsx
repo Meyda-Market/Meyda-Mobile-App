@@ -37,8 +37,13 @@ const { width: screenWidth } = Dimensions.get("window");
 const API_BASE_URL = "https://meyda-app.onrender.com";
 const HEADER_HEIGHT = 50;
 
-const CAROUSEL_ITEM_WIDTH = screenWidth * 0.82;
-const CAROUSEL_SPACING = (screenWidth - CAROUSEL_ITEM_WIDTH) / 2;
+// 💡 ማጂክ: ኮምፒተር (Web) እንተኾይኑ ንስክሪን ኣብ 3 ይመቕሎ፣ ሞባይል እንተኾይኑ 82% ይገብሮ
+// እዚ ነቲ ናይ ኣድቨርታይዝ ባነር ጎኒን ቁመትን መዐረዪ እዩ
+const isWebWide = Platform.OS === "web" && screenWidth > 800;
+const CAROUSEL_ITEM_WIDTH = isWebWide ? screenWidth / 3.2 : screenWidth * 0.6;
+const CAROUSEL_SPACING = isWebWide
+  ? 10
+  : (screenWidth - CAROUSEL_ITEM_WIDTH) / 2;
 
 // 💡 ሓገዚት ፋንክሽን
 const getImageUrl = (imgStr: string) => {
@@ -588,7 +593,11 @@ export default function HomeScreen() {
         </View>
 
         <TouchableOpacity
-          style={styles.userAvatarContainer}
+          // 💡 ማጂክ 1: ኣብ ዳርክ ሞድ እቲ ቦርደር ናብ ሕብሪ ናይቲ ካርድ (#1E1E1E) ይቀየር!
+          style={[
+            styles.userAvatarContainer,
+            { borderColor: isDarkMode ? "#1E1E1E" : "#ffffff" },
+          ]}
           activeOpacity={0.7}
           onPress={() => {
             if (vendorId) router.push(`/profile/${vendorId}` as any);
@@ -1013,16 +1022,16 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginLeft: 10,
   },
-
-  carouselContainer: { marginTop: 5, position: "relative", paddingBottom: 25 },
+  // ጠቕላላ ናይቲ ፕሮ ኣድ ባነር መስተኻኸሊ
+  carouselContainer: { marginTop: 5, position: "relative", paddingBottom: 10 },
   carouselSlide: {
     height: 120,
-    borderRadius: 12,
+    borderRadius: 6,
     overflow: "hidden",
     position: "relative",
     backgroundColor: "#1E1E1E", // 💡 ንካሩሰል ዳርክ ባይታ
   },
-  carouselImage: { width: "100%", height: "100%", resizeMode: "cover" },
+  carouselImage: { width: "100%", height: "100%", resizeMode: "contain" },
   carouselOverlay: {
     position: "absolute",
     width: "100%",
@@ -1039,70 +1048,71 @@ const styles = StyleSheet.create({
   },
 
   dot: {
-    width: 8,
-    height: 8,
+    width: 4,
+    height: 4,
     borderRadius: 4,
     backgroundColor: "rgba(150,150,150,0.5)",
     marginHorizontal: 4,
   },
   dotActive: {
-    width: 10,
-    height: 10,
+    width: 6,
+    height: 6,
     borderRadius: 5,
     backgroundColor: "#f1c40f",
   },
-
+  // ናይ ፕሮ ትብል ኣብ ባነር ዘላ ፅሕፍቲ ቦታን መጠንን
   proBadge: {
     position: "absolute",
-    top: 10,
-    left: 10,
+    top: 5, // 👈 ናብ ላዕለዋይ ኩርናዕ ጽግዕ ክትብል
+    left: 5, // 👈 ናብ ጸጋማይ ኩርናዕ ጽግዕ ክትብል
     backgroundColor: "#f1c40f",
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
+    paddingHorizontal: 5, // 👈 ንእሽቶ ጌርናያ
+    paddingVertical: 2, // 👈 ንእሽቶ ጌርናያ
+    borderRadius: 8,
+    zIndex: 8,
   },
   proBadgeText: {
-    fontSize: 9,
     fontWeight: "bold",
+    fontSize: 6, // 👈 ጽሑፋ ኣንኢስናዮ (ካብ 12 ናብ 6)
     color: "#333",
-    marginLeft: 4,
+    marginLeft: 3,
   },
   carouselInfo: {
     position: "absolute",
-    bottom: 15,
-    left: 15,
-    right: 15,
+    bottom: 8,
+    left: 8,
+    right: 8,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
   },
   carouselTitle: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "bold",
     textShadowColor: "rgba(0,0,0,0.8)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
-  carouselLocation: { color: "#eee", fontSize: 11, marginTop: 2 },
+  carouselLocation: { color: "#eee", fontSize: 8, marginTop: 2 },
   adPriceBadge: {
     backgroundColor: "rgba(0,0,0,0.7)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
-  adPriceText: { color: "#4cd137", fontSize: 13, fontWeight: "bold" },
+  adPriceText: { color: "#4cd137", fontSize: 10, fontWeight: "bold" },
 
-  categoriesContainer: { paddingVertical: 15, paddingLeft: 15 },
+  categoriesContainer: { paddingVertical: 10, paddingLeft: 10 },
   catPill: {
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#eee",
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
     marginRight: 10,
     elevation: 1,
   },
@@ -1110,10 +1120,11 @@ const styles = StyleSheet.create({
   catText: { color: "#555", fontSize: 13, fontWeight: "500" },
   catTextActive: { color: "#fff", fontSize: 13, fontWeight: "bold" },
 
+  // ናይ ኣቕሑ መጠን መስተኻኸሊ
   productCard: {
     width: "48%",
     backgroundColor: "#fff",
-    borderRadius: 15,
+    borderRadius: 6,
     padding: 10,
     elevation: 3,
     position: "relative",
@@ -1121,12 +1132,12 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: "100%",
     height: 130,
-    borderRadius: 10,
+    borderRadius: 8,
     backgroundColor: "#fafafa",
     overflow: "hidden",
     position: "relative",
   },
-  productImg: { width: "100%", height: "100%", resizeMode: "cover" },
+  productImg: { width: "100%", height: "100%", resizeMode: "contain" },
   placeholderImg: {
     width: "100%",
     height: "100%",
@@ -1153,12 +1164,12 @@ const styles = StyleSheet.create({
   },
   saveCountBadge: {
     backgroundColor: "rgba(0,0,0,0.5)",
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: 6,
     marginTop: 4,
   },
-  saveCountText: { color: "#fff", fontSize: 9, fontWeight: "bold" },
+  saveCountText: { color: "#fff", fontSize: 7, fontWeight: "bold" },
 
   userAvatarContainer: {
     position: "absolute",
