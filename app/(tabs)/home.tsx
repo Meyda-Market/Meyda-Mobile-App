@@ -56,6 +56,7 @@ const getImageUrl = (imgStr: string) => {
 // 🚀 ምዕራፍ 2: ርእሳ ዝኸኣለት "Ping-Pong" ባነር (ProCarousel)
 // ==========================================================
 const ProCarousel = ({ proProducts, router }: any) => {
+  const { user } = useContext(AuthContext);
   const carouselRef = useRef<FlatList>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const directionRef = useRef(1); // 1 = ንየማን, -1 = ንጸጋም (Ping-Pong ማጂክ)
@@ -96,7 +97,21 @@ const ProCarousel = ({ proProducts, router }: any) => {
     <View style={{ width: CAROUSEL_ITEM_WIDTH, paddingHorizontal: 5 }}>
       <TouchableOpacity
         activeOpacity={0.9}
-        onPress={() => router.push(`/product/${item._id}` as any)}
+        onPress={() => {
+          const myId = user?._id || user?.id;
+          // እዚ ኣቕሓ ናተይ ድዩ ወይስ ናይ ካልእ? ኢሉ የረጋግጽ
+          const isMyProduct =
+            String(item.sellerId || item.vendorId || item.userId) ===
+            String(myId);
+
+          if (isMyProduct) {
+            // 💡 ማጂክ: ናይ ባዕልኻ ኣቕሓ እንተኾይኑ ብቐጥታ ናብ ኤዲት (Edit) ይወስደካ!
+            router.push(`/edit-product/${item._id || item.id}` as any);
+          } else {
+            // 💡 ናይ ካልእ ሰብ እንተኾይኑ ግና ናብቲ ንቡር መደወሊ (Product Detail) ይወስደካ
+            router.push(`/product/${item._id || item.id}` as any);
+          }
+        }}
       >
         <View style={styles.carouselSlide}>
           <Image
@@ -539,7 +554,20 @@ export default function HomeScreen() {
           { backgroundColor: isDarkMode ? "#1E1E1E" : "#FFFFFF" },
         ]}
         activeOpacity={0.8}
-        onPress={() => router.push(`/product/${item._id}` as any)}
+        onPress={() => {
+          const myId = user?._id || user?.id;
+          const isMyProduct =
+            String(item.sellerId || item.vendorId || item.userId) ===
+            String(myId);
+
+          if (isMyProduct) {
+            // ናይ ባዕልኻ እንተኾይኑ ናብ Edit ይወስድ
+            router.push(`/edit-product/${item._id || item.id}` as any);
+          } else {
+            // ናይ ካልእ እንተኾይኑ ናብ መደወሊ ይወስድ
+            router.push(`/product/${item._id || item.id}` as any);
+          }
+        }}
       >
         <View
           style={[

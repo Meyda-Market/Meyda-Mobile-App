@@ -17,7 +17,7 @@ import {
   View,
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
-import { ThemeContext } from "../../context/ThemeContext"; // 💡 ሓዱሽ: ዳርክ ሞድ ሓንጎል መጸውዒ
+import { ThemeContext } from "../../context/ThemeContext";
 
 const API_BASE_URL = "https://meyda-app.onrender.com";
 
@@ -37,29 +37,62 @@ export default function ChatScreen() {
 
   const router = useRouter();
   const { user } = useContext(AuthContext);
-  // 💡 ማጂክ: ዳርክ ሞድ ሓንጎል ንጽውዕ
   const { isDarkMode } = useContext(ThemeContext);
 
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
   const flatListRef = useRef<FlatList>(null);
-
   const [showPreview, setShowPreview] = useState(true);
+
+  // 💡 ሓዱሽ ማጂክ: ትኽክለኛ ናይ ዓሚል ፕሮፋይል መኽዘን
+  const [partnerRealName, setPartnerRealName] = useState<string | null>(null);
+  const [partnerAvatar, setPartnerAvatar] = useState<string | null>(null);
 
   // ==========================================================
   // 🚀 ምዕራፍ 3: መበገሲ ማጂካት (Initial Effects)
   // ==========================================================
   useEffect(() => {
+    fetchPartnerProfile(); // 👈 ትኽክለኛ ስምን ስእልን ይጽውዕ
     fetchMessages();
+    markMessagesAsRead();
     const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [receiverId]);
 
   useEffect(() => {
     if (prefillMsg && typeof prefillMsg === "string") {
       setInputText(prefillMsg);
     }
   }, [prefillMsg]);
+
+  // 💡 ሓዱሽ ማጂክ: ትኽክለኛ ስምን ስእልን ካብ ዳታቤዝ ንስሕብ!
+  const fetchPartnerProfile = async () => {
+    if (!receiverId) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/users/${receiverId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPartnerRealName(data.name);
+        setPartnerAvatar(data.profilePic || data.avatar);
+      }
+    } catch (error) {
+      console.log("Error fetching partner profile", error);
+    }
+  };
+
+  const markMessagesAsRead = async () => {
+    if (!user || !receiverId) return;
+    try {
+      const myId = user._id || user.id;
+      await fetch(`${API_BASE_URL}/api/messages/mark-read`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ senderId: receiverId, receiverId: myId }),
+      });
+    } catch (error) {
+      console.log("Error marking messages as read", error);
+    }
+  };
 
   const getImageUrl = (urlPath: any) => {
     if (!urlPath) return "https://via.placeholder.com/100";
@@ -79,10 +112,13 @@ export default function ChatScreen() {
         const data = await response.json();
         const chatHistory = data.filter(
           (m: any) =>
-            (String(m.senderId) === String(myId) &&
+            ((String(m.senderId) === String(myId) &&
               String(m.receiverId) === String(receiverId)) ||
-            (String(m.senderId) === String(receiverId) &&
-              String(m.receiverId) === String(myId)),
+              (String(m.senderId) === String(receiverId) &&
+                String(m.receiverId) === String(myId))) &&
+            m.type !== "like" &&
+            !m.text.includes("Like") &&
+            !m.text.includes("ላይክ"),
         );
         setMessages(chatHistory.reverse());
       }
@@ -251,12 +287,25 @@ export default function ChatScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <View style={styles.headerInfo}>
-          <Ionicons name="person-circle" size={36} color="#fff" />
+
+        {/* 💡 ማጂክ: ትኽክለኛ ፕሮፋይል ስእልን ስምን ኣብ ላዕሊ ይረአ */}
+        <TouchableOpacity
+          style={styles.headerInfo}
+          activeOpacity={0.7}
+          onPress={() => router.push(`/profile/${receiverId}` as any)}
+        >
+          {partnerAvatar ? (
+            <Image
+              source={{ uri: getImageUrl(partnerAvatar) }}
+              style={styles.headerAvatar}
+            />
+          ) : (
+            <Ionicons name="person-circle" size={36} color="#fff" />
+          )}
           <Text style={styles.headerName} numberOfLines={1}>
-            {receiverName || "ነጋዳይ"}
+            {partnerRealName || receiverName || "ነጋዳይ"}
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* ናይ ኣቕሓ ፕሪቪው (Preview Banner) */}
@@ -291,7 +340,6 @@ export default function ChatScreen() {
               <Text style={styles.previewPrice}>{productPrice} Br</Text>
             </View>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.closePreviewBtn}
             onPress={() => setShowPreview(false)}
@@ -333,7 +381,7 @@ export default function ChatScreen() {
                   { color: isDarkMode ? "#888" : "#888" },
                 ]}
               >
-                ምስ {receiverName} ዕላል ጀምሩ! 👋
+                ምስ {partnerRealName || receiverName} ዕላል ጀምሩ! 👋
               </Text>
             </View>
           )}
@@ -404,6 +452,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginLeft: 10,
+  },
+  // 💡 ሓዱሽ: ዲዛይን ናይ ላዕለዋይ ስእሊ (Header Avatar)
+  headerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#eee",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.5)",
   },
 
   productPreviewContainer: {

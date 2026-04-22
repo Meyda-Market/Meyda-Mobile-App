@@ -22,7 +22,7 @@ import {
   View,
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
-import { ThemeContext } from "../../context/ThemeContext"; // 💡 ሓዱሽ: ዳርክ ሞድ ሓንጎል መጸውዒ
+import { ThemeContext } from "../../context/ThemeContext";
 
 const { width } = Dimensions.get("window");
 const API_BASE_URL = "https://meyda-app.onrender.com";
@@ -30,28 +30,29 @@ const API_BASE_URL = "https://meyda-app.onrender.com";
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useContext(AuthContext);
-  // 💡 ማጂክ: ዳርክ ሞድ ሓንጎል ንጽውዕ (ብዘይ መጥወቒት)
   const { isDarkMode } = useContext(ThemeContext);
 
-  // 💡 መኽዘን ኩነታት (Modals)
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [editProfileVisible, setEditProfileVisible] = useState(false);
   const [socialLinksVisible, setSocialLinksVisible] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [emailVisible, setEmailVisible] = useState(false);
 
-  const [activeTab, setActiveTab] = useState("ads"); // 'ads' | 'saved' | 'messages'
+  // 💡 ሓዱሽ ማጂክ: ንናይ ባዕልኻ ኣቕሓ ምምሕዳር (Custom Modal States)
+  const [manageModalVisible, setManageModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+
+  const [activeTab, setActiveTab] = useState("ads");
 
   const [myProducts, setMyProducts] = useState<any[]>([]);
   const [savedProducts, setSavedProducts] = useState<any[]>([]);
   const [myChats, setMyChats] = useState<any[]>([]);
+  const [totalUnreadMsgs, setTotalUnreadMsgs] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // 💡 ሓደስቲ ስእልታት ግዝያው መኽዘን (Local Image State)
   const [localProfilePic, setLocalProfilePic] = useState<string | null>(null);
   const [localBannerPic, setLocalBannerPic] = useState<string | null>(null);
 
-  // 💡 ንኤዲት መግበሪ (Form States)
   const [editName, setEditName] = useState(user?.name || "");
   const [editBio, setEditBio] = useState(user?.bio || "");
   const [editFb, setEditFb] = useState("");
@@ -74,7 +75,6 @@ export default function ProfileScreen() {
     try {
       const myId = user?._id || user?.id;
 
-      // 1. ኣቕሑት ነምጽእ
       const res = await fetch(`${API_BASE_URL}/api/products`);
       const allProducts = await res.json();
 
@@ -86,50 +86,105 @@ export default function ProfileScreen() {
         const saved = allProducts.filter(
           (p: any) => p.savedBy && p.savedBy.includes(myId),
         );
-        setMyProducts(mine.reverse());
-        setSavedProducts(saved.reverse());
+
+        // 💡 ሓዱሽ ማጂክ: ብትኽክለኛ ግዜ (Date) ንሰርዓዮም (ሓደስቲ ኩሉግዜ ኣብ ቅድሚት)
+        mine.sort(
+          (a: any, b: any) =>
+            new Date(b.createdAt || b.updatedAt).getTime() -
+            new Date(a.createdAt || a.updatedAt).getTime(),
+        );
+        saved.sort(
+          (a: any, b: any) =>
+            new Date(b.createdAt || b.updatedAt).getTime() -
+            new Date(a.createdAt || a.updatedAt).getTime(),
+        );
+
+        setMyProducts(mine);
+        setSavedProducts(saved);
       }
 
-      // 2. ሓዱሽ ማጂክ: ናይ ሓቂ መልእኽትታት ምስ ትኽክለኛ ስም
       const msgRes = await fetch(`${API_BASE_URL}/api/messages/${myId}`);
       if (msgRes.ok) {
-        const allMsgs = await msgRes.json();
+        const rawMsgs = await msgRes.json();
+
+        const allMsgs = rawMsgs.filter(
+          (m: any) =>
+            m.type !== "like" &&
+            !m.text.includes("Like") &&
+            !m.text.includes("ላይክ"),
+        );
+
         const chatMap = new Map();
+        let unreadTotal = 0;
 
         allMsgs.forEach((m: any) => {
           const isMe = String(m.senderId) === String(myId);
           const partnerId = isMe ? m.receiverId : m.senderId;
-          const partnerName = isMe
-            ? m.receiverName || "ዓሚል (Customer)"
-            : m.senderName || "ሸያጢ (Seller)";
 
-          if (
+          const fallbackName = isMe
+            ? m.receiverName || "ዓሚል"
+            : m.senderName || "ሸያጢ";
+          const isUnread = !isMe && (m.read === false || m.isRead === false);
+
+          let currentUnread = chatMap.has(partnerId)
+            ? chatMap.get(partnerId).unread
+            : 0;
+          if (isUnread) {
+            currentUnread += 1;
+            unreadTotal += 1;
+          }
+
+          const isNewer =
             !chatMap.has(partnerId) ||
-            new Date(m.createdAt) > new Date(chatMap.get(partnerId).createdAt)
-          ) {
+            new Date(m.createdAt) > new Date(chatMap.get(partnerId).createdAt);
+
+          if (isNewer) {
             chatMap.set(partnerId, {
               id: partnerId,
-              name:
-                chatMap.has(partnerId) &&
-                chatMap.get(partnerId).name !== "ዓሚል (Customer)"
-                  ? chatMap.get(partnerId).name
-                  : partnerName,
+              name: fallbackName,
+              avatar: null,
               text: m.text,
               time: new Date(m.createdAt).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
               }),
               createdAt: m.createdAt,
-              unread: 0,
+              unread: currentUnread,
             });
+          } else {
+            chatMap.get(partnerId).unread = currentUnread;
           }
         });
 
-        const chatList = Array.from(chatMap.values()).sort(
+        const chatList = Array.from(chatMap.values());
+
+        const updatedChatList = await Promise.all(
+          chatList.map(async (chatInfo: any) => {
+            try {
+              const userRes = await fetch(
+                `${API_BASE_URL}/api/users/${chatInfo.id}`,
+              );
+              if (userRes.ok) {
+                const userData = await userRes.json();
+                return {
+                  ...chatInfo,
+                  name: userData.name || chatInfo.name,
+                  avatar: userData.profilePic || userData.avatar || null,
+                };
+              }
+            } catch (err) {
+              console.log("Error fetching user profile for chat", err);
+            }
+            return chatInfo;
+          }),
+        );
+
+        updatedChatList.sort(
           (a: any, b: any) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
-        setMyChats(chatList);
+        setMyChats(updatedChatList);
+        setTotalUnreadMsgs(unreadTotal);
       }
     } catch (error) {
       console.log("Error fetching profile data:", error);
@@ -141,6 +196,30 @@ export default function ProfileScreen() {
   // ==========================================================
   // 🚀 ምዕራፍ 3: ሓገዝቲ ፋንክሽናት (Helpers & Actions)
   // ==========================================================
+  const handleDeleteProduct = (productId: string) => {
+    Alert.alert("⚠️ ኣረጋግጽ", "ብሓቂ ነዚ ኣቕሓ ክትድምስሶ ትደሊ ዲኻ?", [
+      { text: "ኣቋርጽ", style: "cancel" },
+      {
+        text: "ደምስስ (Delete)",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const res = await fetch(
+              `${API_BASE_URL}/api/products/${productId}`,
+              { method: "DELETE" },
+            );
+            if (res.ok) {
+              Alert.alert("ዕዉት", "ኣቕሓ ብዓወት ተደምሲሱ!");
+              fetchMyData(); // ሪፍረሽ ንምግባር
+            }
+          } catch (error) {
+            console.log("Error deleting product:", error);
+          }
+        },
+      },
+    ]);
+  };
+
   const handleLogout = async () => {
     setSettingsVisible(false);
     await logout();
@@ -163,14 +242,10 @@ export default function ProfileScreen() {
     setSettingsVisible(false);
     Alert.alert(
       "Switch Account",
-      "ናብ ካልእ ኣካውንት ንምእታው መጀመርታ ካብዚ ሎግ-ኣውት ክትገብር ኣለካ።",
+      "ናብ ካልእ ኣካውንት ንምእታው መጀመርታ ሎግ-ኣውት ክትገብር ኣለካ።",
       [
         { text: "ኣቋርጽ", style: "cancel" },
-        {
-          text: "ሎግ-ኣውት (Log out)",
-          style: "destructive",
-          onPress: handleLogout,
-        },
+        { text: "ሎግ-ኣውት", style: "destructive", onPress: handleLogout },
       ],
     );
   };
@@ -188,7 +263,7 @@ export default function ProfileScreen() {
         const uri = result.assets[0].uri;
         if (type === "ባነር") setLocalBannerPic(uri);
         else setLocalProfilePic(uri);
-        Alert.alert("ዕዉት", `${type} ስእሊ ብዓወት ተቐይሩ ኣሎ! (API ኣብ ቀጻሊ ይስራሕ)`);
+        Alert.alert("ዕዉት", `${type} ስእሊ ብዓወት ተቐይሩ ኣሎ!`);
       }
     } catch (error) {
       Alert.alert("ጌጋ", "ስእሊ ምምራጽ ኣይተኻእለን።");
@@ -398,6 +473,18 @@ export default function ProfileScreen() {
             size={22}
             color={activeTab === "messages" ? "#fff" : "#029eff"}
           />
+          {totalUnreadMsgs > 0 && (
+            <View
+              style={[
+                styles.mainUnreadBadge,
+                { borderColor: isDarkMode ? "#1E1E1E" : "#f0f8ff" },
+              ]}
+            >
+              <Text style={styles.mainUnreadText}>
+                {totalUnreadMsgs > 99 ? "99+" : totalUnreadMsgs}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -416,8 +503,39 @@ export default function ProfileScreen() {
         },
       ]}
       activeOpacity={0.8}
-      onPress={() => router.push(`/product/${item._id}` as any)}
+      onPress={() => {
+        // 💡 ማጂክ: እቲ ሎጂክ ኣብዚ ይጅምር (ሰለስተዮም ምርጫታት)
+
+        const myId = user?._id || user?.id;
+        const isMyProduct =
+          String(item.sellerId || item.vendorId || item.userId) ===
+          String(myId);
+
+        // 1️⃣ ምርጫ ሓደ: ኣብ "Ads" (ናተይ ኣቕሑት) ታብ እንተለና
+        if (activeTab === "ads") {
+          setSelectedProduct(item);
+          setManageModalVisible(true); // ናይ Edit/Delete ዳሽቦርድ ይኸፍት
+        }
+
+        // 2️⃣ ምርጫ ክልተ: ኣብ "Saved" (ዕቑባት) ታብ እንተለና
+        else if (activeTab === "saved") {
+          if (isMyProduct) {
+            // ናተይ ኣቕሓ እንተኾይኑ Save ዝገበርክዎ፡ ዳሽቦርድ ይኸፍት
+            setSelectedProduct(item);
+            setManageModalVisible(true);
+          } else {
+            // ናይ ካልእ ሰብ ኣቕሓ እንተኾይኑ፡ ናብ መደወሊ (Details) ይወስድ
+            router.push(`/product/${item._id || item.id}` as any);
+          }
+        }
+
+        // 3️⃣ ምርጫ ሰለስተ: ንኻልእ ኩነታት (Default)
+        else {
+          router.push(`/product/${item._id || item.id}` as any);
+        }
+      }}
     >
+      {/* ስእሊ ኣቕሓ */}
       {item.images && item.images.length > 0 ? (
         <Image
           source={{ uri: getImageUrl(item.images[0]) }}
@@ -439,6 +557,8 @@ export default function ProfileScreen() {
           />
         </View>
       )}
+
+      {/* ዋጋ ኣቕሓ */}
       <View
         style={[
           styles.priceOverlay,
@@ -457,7 +577,6 @@ export default function ProfileScreen() {
       </View>
     </TouchableOpacity>
   );
-
   const renderMessageItem = ({ item }: any) => (
     <View
       style={[
@@ -472,14 +591,17 @@ export default function ProfileScreen() {
         onPress={() => router.push(`/profile/${item.id}` as any)}
       >
         <Image
-          source={{ uri: item.avatar || "https://via.placeholder.com/150" }}
+          source={{
+            uri: item.avatar
+              ? getImageUrl(item.avatar)
+              : "https://via.placeholder.com/150",
+          }}
           style={[
             styles.chatAvatarImage,
             { backgroundColor: isDarkMode ? "#333" : "#eee" },
           ]}
         />
       </TouchableOpacity>
-
       <TouchableOpacity
         style={styles.chatInfo}
         onPress={() =>
@@ -501,7 +623,6 @@ export default function ProfileScreen() {
           {item.text}
         </Text>
       </TouchableOpacity>
-
       <View style={styles.chatMeta}>
         <Text
           style={[styles.chatTime, { color: isDarkMode ? "#888" : "#999" }]}
@@ -579,9 +700,102 @@ export default function ProfileScreen() {
       )}
 
       {/* ==========================================================
-          🚀 ምዕራፍ 7: MODALS (ፖፕ-ኣፕታት) 
+          🚀 ሓዱሽ ማጂክ: ውቅብቲ ናይ ኣቕሓ ምምሕዳር ዳሽቦርድ (Custom Modal)
           ========================================================== */}
+      <Modal
+        visible={manageModalVisible}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.manageOverlay}>
+          {selectedProduct && (
+            <View
+              style={[
+                styles.manageContent,
+                { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+              ]}
+            >
+              {/* 1. ገዚፍ ስእሊ */}
+              <Image
+                source={{ uri: getImageUrl(selectedProduct.images?.[0]) }}
+                style={styles.manageLargeImage}
+              />
 
+              {/* 2. ስምን ዋጋን */}
+              <View style={styles.manageDetails}>
+                <Text
+                  style={[
+                    styles.manageTitle,
+                    { color: isDarkMode ? "#FFF" : "#333" },
+                  ]}
+                  numberOfLines={2}
+                >
+                  {selectedProduct.title || selectedProduct.name}
+                </Text>
+                <Text style={styles.managePrice}>
+                  {selectedProduct.price} Br
+                </Text>
+              </View>
+
+              {/* 3. ውቁባት ኣይከናት (Icons) */}
+              <View style={styles.manageActionRow}>
+                {/* Back (መመለሲ) */}
+                <TouchableOpacity
+                  style={[
+                    styles.actionIconBtn,
+                    { backgroundColor: isDarkMode ? "#444" : "#e0e0e0" },
+                  ]}
+                  onPress={() => setManageModalVisible(false)}
+                >
+                  <Ionicons
+                    name="close"
+                    size={28}
+                    color={isDarkMode ? "#fff" : "#333"}
+                  />
+                </TouchableOpacity>
+
+                {/* Edit (ምምሕያሽ) */}
+                <TouchableOpacity
+                  style={[styles.actionIconBtn, { backgroundColor: "#029eff" }]}
+                  onPress={() => {
+                    setManageModalVisible(false);
+                    // 💡 ማጂክ: ዳታ ብቐጥታ ሒዝናዮ ንኸይድ ኣለና! API ኣየድልየናን!
+                    router.push({
+                      pathname: `/edit-product/${selectedProduct._id || selectedProduct.id}`,
+                      params: {
+                        title:
+                          selectedProduct.title || selectedProduct.name || "",
+                        price: selectedProduct.price || "",
+                        description: selectedProduct.description || "",
+                        images: JSON.stringify(selectedProduct.images || []),
+                      },
+                    } as any);
+                  }}
+                >
+                  <Ionicons name="pencil" size={26} color="#fff" />
+                </TouchableOpacity>
+
+                {/* Delete (ምድምሳስ) */}
+                <TouchableOpacity
+                  style={[styles.actionIconBtn, { backgroundColor: "#FF3B30" }]}
+                  onPress={() => {
+                    setManageModalVisible(false);
+                    handleDeleteProduct(
+                      selectedProduct._id || selectedProduct.id,
+                    );
+                  }}
+                >
+                  <Ionicons name="trash" size={26} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+      </Modal>
+
+      {/* ==========================================================
+          🚀 ካልኦት ንቡራት Modals (Settings, Edit Profile, Password...)
+          ========================================================== */}
       <Modal visible={settingsVisible} transparent={true} animationType="slide">
         <TouchableOpacity
           style={styles.modalOverlay}
@@ -608,7 +822,6 @@ export default function ProfileScreen() {
             >
               Settings
             </Text>
-
             <TouchableOpacity
               style={[
                 styles.modalItem,
@@ -630,7 +843,6 @@ export default function ProfileScreen() {
                 Switch account
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[
                 styles.modalItem,
@@ -655,7 +867,6 @@ export default function ProfileScreen() {
                 Edit Profile (ስምን ባዮን)
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[
                 styles.modalItem,
@@ -680,7 +891,6 @@ export default function ProfileScreen() {
                 Add Social Links
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[
                 styles.modalItem,
@@ -705,7 +915,6 @@ export default function ProfileScreen() {
                 Change password
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[
                 styles.modalItem,
@@ -730,7 +939,6 @@ export default function ProfileScreen() {
                 Change email
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[
                 styles.modalItem,
@@ -752,7 +960,6 @@ export default function ProfileScreen() {
                 Log out
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[styles.modalItem, { borderBottomWidth: 0 }]}
               onPress={handleDeleteAccount}
@@ -1081,7 +1288,6 @@ const styles = StyleSheet.create({
   },
   topLeft: { flexDirection: "row", alignItems: "center" },
   profileText: { fontSize: 18, fontWeight: "bold", color: "#fff" },
-
   coverContainer: { width: "100%", height: 130, position: "relative" },
   coverImage: { width: "100%", height: "100%", resizeMode: "cover" },
   shareBtn: {
@@ -1102,7 +1308,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     zIndex: 10,
   },
-
   avatarSection: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -1135,7 +1340,6 @@ const styles = StyleSheet.create({
     borderColor: "#fff",
     zIndex: 10,
   },
-
   countdownBtn: {
     backgroundColor: "#2ecc71",
     flexDirection: "row",
@@ -1152,7 +1356,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 4,
   },
-
   infoSection: { paddingHorizontal: 20, marginTop: 10 },
   nameText: { fontSize: 18, fontWeight: "bold", color: "#333" },
   bioText: { fontSize: 14, color: "#666", marginTop: 2 },
@@ -1160,7 +1363,6 @@ const styles = StyleSheet.create({
   statItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   statNumber: { fontSize: 15, fontWeight: "bold", color: "#333" },
   statLabel: { fontSize: 14, color: "#666" },
-
   actionTabsRow: {
     flexDirection: "row",
     justifyContent: "center",
@@ -1185,7 +1387,21 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
   },
   activeTabBg: { backgroundColor: "#029eff" },
-
+  mainUnreadBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#FF3B30",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    zIndex: 10,
+  },
+  mainUnreadText: { color: "#fff", fontSize: 10, fontWeight: "bold" },
   gridCard: {
     width: width / 3 - 6,
     height: 120,
@@ -1207,7 +1423,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   priceText: { fontSize: 11, fontWeight: "bold", color: "#333" },
-
   chatItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -1233,7 +1448,7 @@ const styles = StyleSheet.create({
   chatMeta: { alignItems: "flex-end" },
   chatTime: { fontSize: 12, color: "#999", marginBottom: 5 },
   unreadBadge: {
-    backgroundColor: "#029eff",
+    backgroundColor: "#FF3B30",
     width: 20,
     height: 20,
     borderRadius: 10,
@@ -1241,7 +1456,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   unreadText: { color: "#fff", fontSize: 10, fontWeight: "bold" },
-
   emptyContainer: {
     alignItems: "center",
     marginTop: 50,
@@ -1253,7 +1467,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: "center",
   },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -1288,7 +1501,6 @@ const styles = StyleSheet.create({
     borderBottomColor: "#eee",
   },
   modalItemText: { fontSize: 16, marginLeft: 15, color: "#333" },
-
   formContent: {
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
@@ -1332,4 +1544,63 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   saveText: { fontWeight: "bold", color: "#fff" },
+
+  // ==========================================================
+  // 🚀 ሓደስቲ ዲዛይናት ን ውቅብቲ ዳሽቦርድ (Manage Product Modal)
+  // ==========================================================
+  manageOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.8)", // 👈 ጸሊም ግልጽ ዝበለ ድሕረ-ባይታ
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  manageContent: {
+    width: "100%",
+    borderRadius: 20,
+    overflow: "hidden",
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  manageLargeImage: {
+    width: "100%",
+    height: 300,
+    resizeMode: "cover",
+  },
+  manageDetails: {
+    padding: 20,
+    alignItems: "center",
+  },
+  manageTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  managePrice: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#029eff",
+  },
+  manageActionRow: {
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    paddingBottom: 30,
+    paddingTop: 10,
+  },
+  actionIconBtn: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
 });
