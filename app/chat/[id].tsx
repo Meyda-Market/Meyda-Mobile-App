@@ -80,15 +80,25 @@ export default function ChatScreen() {
     }
   };
 
+  // 💡 ማጂክ: ቀያሕቲ ባጃት (Unread) መጥፍኢት (Smart Read Marker)
   const markMessagesAsRead = async () => {
     if (!user || !receiverId) return;
     try {
       const myId = user._id || user.id;
-      await fetch(`${API_BASE_URL}/api/messages/mark-read`, {
+
+      // ንባክ-ኤንድና ከምዚ ኢልና ንሰደሉ (senderId እቲ ዝለኣኸልና ሰብ እዩ)
+      const res = await fetch(`${API_BASE_URL}/api/messages/mark-read`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ senderId: receiverId, receiverId: myId }),
+        body: JSON.stringify({
+          senderId: String(receiverId),
+          receiverId: String(myId),
+        }),
       });
+
+      if (!res.ok) {
+        console.log("Failed to mark messages as read");
+      }
     } catch (error) {
       console.log("Error marking messages as read", error);
     }

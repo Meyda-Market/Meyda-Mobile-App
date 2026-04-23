@@ -6,20 +6,20 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useContext, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { ThemeContext } from "../../context/ThemeContext";
 
@@ -30,13 +30,8 @@ export default function EditProductScreen() {
   const router = useRouter();
   const { isDarkMode } = useContext(ThemeContext);
 
-  const {
-    id,
-    title: initialTitle,
-    price: initialPrice,
-    description: initialDesc,
-    images: initialImages,
-  } = useLocalSearchParams();
+  const { id } = useLocalSearchParams();
+  const [loadingData, setLoadingData] = useState(true); // 💡 ዳታ ክሳብ ዝመጽእ
 
   const [saving, setSaving] = useState(false);
 
@@ -46,27 +41,46 @@ export default function EditProductScreen() {
   const [images, setImages] = useState<string[]>([]);
 
   // ==========================================================
-  // 🚀 ምዕራፍ 2: ዝመጸ ዳታ ኣብ መጽሓፊ ምምላእ
+  // 🚀 ምዕራፍ 2: ዳታ ናይዚ ኣቕሓ ካብ ሰርቨር ምጽዋዕ (Smart Fetch)
   // ==========================================================
   useEffect(() => {
-    setTitle((initialTitle as string) || "");
-    setPrice((initialPrice as string) || "");
-    setDescription((initialDesc as string) || "");
+    if (id) fetchProductData();
+  }, [id]);
 
-    if (initialImages && typeof initialImages === "string") {
-      try {
-        const parsedImages = JSON.parse(initialImages);
-        if (Array.isArray(parsedImages)) {
-          const formattedImages = parsedImages.map((img: string) =>
+  const fetchProductData = async () => {
+    try {
+      setLoadingData(true);
+      const response = await fetch(`${API_BASE_URL}/api/products`);
+      const data = await response.json();
+
+      // 💡 ማጂክ: ነቲ ናትና ኣቕሓ ብ ID ጌርና ካብ ዳታቤዝ ንደልዮ
+      const product = data.find(
+        (item: any) =>
+          String(item._id) === String(id) || String(item.id) === String(id),
+      );
+
+      if (product) {
+        // 💡 ዳታ ምስ ረኸበ፡ ብቐጥታ ናብተን መጽሓፊ ቦክሳት (Inputs) ይመልኦ
+        setTitle(product.title || product.name || "");
+        setPrice(product.price ? String(product.price) : "");
+        setDescription(product.description || "");
+
+        // 💡 ስእልታት ምምጻእ
+        if (product.images && Array.isArray(product.images)) {
+          const formattedImages = product.images.map((img: string) =>
             getImageUrl(img),
           );
           setImages(formattedImages);
+        } else if (product.image) {
+          setImages([getImageUrl(product.image)]);
         }
-      } catch (e) {
-        console.log("Error parsing images", e);
       }
+    } catch (error) {
+      console.log("ጌጋ ሓበሬታ ምምጻእ:", error);
+    } finally {
+      setLoadingData(false);
     }
-  }, [initialTitle, initialPrice, initialDesc, initialImages]);
+  };
 
   const getImageUrl = (imgStr: string) => {
     if (!imgStr) return "https://via.placeholder.com/150";
@@ -76,7 +90,7 @@ export default function EditProductScreen() {
   };
 
   // ==========================================================
-  // 🚀 ምዕራፍ 3: ስእሊ ምውሳኽን ምድምሳስን
+  // 🚀 ምዕራፍ 3: ስእሊ ምውሳኽን ምድምሳስን (No Forced Crop)
   // ==========================================================
   const pickImage = async () => {
     if (images.length >= 5) {
@@ -86,9 +100,8 @@ export default function EditProductScreen() {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
+        allowsEditing: false, // 💡 ማጂክ: ካብ true ናብ false ተቐይሩ (ሕጂ ብግዲ Crop ኣይብለካን)
+        quality: 0.8, // 💡 እቲ aspect: [4,3] ዝብል እውን የድልየናን እዩ ስለዘይንቖርጽ
       });
       if (!result.canceled) {
         setImages((prev) => [...prev, result.assets[0].uri]);

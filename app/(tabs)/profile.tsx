@@ -29,7 +29,7 @@ const API_BASE_URL = "https://meyda-app.onrender.com";
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout, token } = useContext(AuthContext);
   const { isDarkMode } = useContext(ThemeContext);
 
   const [settingsVisible, setSettingsVisible] = useState(false);
@@ -75,6 +75,37 @@ export default function ProfileScreen() {
     try {
       const myId = user?._id || user?.id;
 
+      // ==========================================================
+      // 💡 ማጂክ 1: ኩሉግዜ ሓዱሽ ፕሮፋይልካ ካብ ዳታቤዝ ኣምጽእ (Fresh Fetch)
+      // ==========================================================
+      try {
+        const myUserRes = await fetch(`${API_BASE_URL}/api/users/${myId}`);
+        if (myUserRes.ok) {
+          const freshUser = await myUserRes.json();
+          // ማጂክ: ነቲ ኣብ ስክሪን ዝረአ ሓበሬታ ብሓዱሽ ንትክኦ!
+          if (user) {
+            user.name = freshUser.name;
+            user.bio = freshUser.bio;
+            user.profilePic = freshUser.profilePic;
+            user.bannerPic = freshUser.bannerPic;
+            user.facebook = freshUser.facebook;
+            user.youtube = freshUser.youtube;
+          }
+          // ነተን ናይ Edit ፎርም እውን ብሓዱሽ ንመልአን
+          setEditName(freshUser.name || "");
+          setEditBio(freshUser.bio || "");
+          setLocalProfilePic(
+            freshUser.profilePic ? getImageUrl(freshUser.profilePic) : null,
+          );
+          setLocalBannerPic(
+            freshUser.bannerPic ? getImageUrl(freshUser.bannerPic) : null,
+          );
+        }
+      } catch (err) {
+        console.log("Error fetching fresh profile:", err);
+      }
+
+      // ... (ካብዚ ንታሕቲ እቲ ዝነበረ ናይ ዕዳጋን (Products) ሜሰጅን ምምጻእ ይቕጽል) ...
       const res = await fetch(`${API_BASE_URL}/api/products`);
       const allProducts = await res.json();
 
@@ -258,12 +289,13 @@ export default function ProfileScreen() {
         aspect: type === "ባነር" ? [16, 9] : [1, 1],
         quality: 0.8,
       });
-
       if (!result.canceled) {
         const uri = result.assets[0].uri;
         if (type === "ባነር") setLocalBannerPic(uri);
         else setLocalProfilePic(uri);
-        Alert.alert("ዕዉት", `${type} ስእሊ ብዓወት ተቐይሩ ኣሎ!`);
+
+        // 💡 ሓዱሽ ማጂክ: ስእሊ ምስ መረጸ ብቐጥታ ናብ ሰርቨር ክሰዶ ኣዝዞ
+        handleUpdateImage(uri, type);
       }
     } catch (error) {
       Alert.alert("ጌጋ", "ስእሊ ምምራጽ ኣይተኻእለን።");
@@ -275,6 +307,106 @@ export default function ProfileScreen() {
     if (imgStr.startsWith("http") || imgStr.startsWith("file://"))
       return imgStr;
     return `${API_BASE_URL}${imgStr}`;
+  };
+  // 💡 ማጂክ: ዳታ ፕሮፋይል (ስም፣ ባዮ፣ ሊንክ) ናብ ሰርቨር ዝሰድድ
+  // 💡 ማጂክ 1: ዳታ ፕሮፋይል (ስም፣ ባዮ፣ ሊንክ) ናብ ሰርቨር ዝሰድድ (ምስ መመርመሪ ጌጋ)
+  const handleUpdateProfile = async () => {
+    try {
+      const myId = user?._id || user?.id;
+      const res = await fetch(`${API_BASE_URL}/api/users/${myId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          // 💡 እንተድኣ ቶከን የድሊ ኮይኑ ዳሓር ኣብዚኣ ክንውስኾ ኢና
+        },
+        body: JSON.stringify({
+          name: editName,
+          bio: editBio,
+          facebook: editFb,
+          youtube: editYt,
+        }),
+      });
+
+      if (res.ok) {
+        Alert.alert("ዕዉት", "ፕሮፋይልካ ብዓወት ተመሓይሹ ኣሎ!");
+        fetchMyData(); // 👈 💡 ማጂክ: ቀጥታ ሓዱሽ ዳታ ንኸምጽእ ኣዘዝናዮ
+
+        user.name = editName;
+        user.bio = editBio;
+      } else {
+        // 🚨 እታ ማይክሮስኮፕ ኣብዚኣ እያ ዘላ! (ነቲ ጌጋ ካብ ሰርቨር ትነግረና)
+        const errorMsg = await res.text();
+        Alert.alert("ጌጋ ካብ ሰርቨር", `ምኽንያት: ${errorMsg.substring(0, 100)}`);
+        console.log("Server Error Profile:", errorMsg);
+      }
+    } catch (e) {
+      Alert.alert("ጌጋ ኔትወርክ", "ምስ ሰርቨር ምርኻብ ኣይተኻእለን።");
+    }
+  };
+
+  // 💡 ማጂክ 2: ስእሊ ናብ ሰርቨር ብኽልተ ስጉምቲ ዝሰድድ (The Perfect Two-Step Upload)
+  const handleUpdateImage = async (uri: string, type: string) => {
+    try {
+      const myId = user?._id || user?.id;
+
+      // ======================================================
+      // 1️⃣ ስጉምቲ 1: ነቲ ስእሊ ናብታ ናይ Upload API ንሰዶ
+      // ======================================================
+      const formData = new FormData();
+      let filename = uri.split("/").pop() || `image_${Date.now()}.jpg`;
+      let match = /\.(\w+)$/.exec(filename);
+      let mimeType = match ? `image/${match[1]}` : `image/jpeg`;
+
+      // 💡 ማጂክ: ሰርቨር 'image' ዝብል ስም እዩ ዝጽበ ዘሎ!
+      formData.append("image", {
+        uri: uri,
+        name: filename,
+        type: mimeType,
+      } as any);
+
+      const uploadRes = await fetch(`${API_BASE_URL}/api/upload/profile`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        Alert.alert("ጌጋ", "ስእሊ ናብ ሰርቨር ክድይብ ኣይከኣለን።");
+        fetchMyData();
+        return;
+      }
+
+      // እቲ ሰርቨር ዝሃበና ሓዱሽ ሊንክ ናይቲ ስእሊ ንቕበሎ
+      const uploadData = await uploadRes.json();
+      const newImageUrl = uploadData.imageUrl;
+
+      // ======================================================
+      // 2️⃣ ስጉምቲ 2: ነቲ ሓዱሽ ሊንክ ምስ ፕሮፋይልና ንኣስሮ
+      // ======================================================
+      const updateBody =
+        type === "ባነር"
+          ? { bannerPic: newImageUrl }
+          : { profilePic: newImageUrl };
+
+      const updateRes = await fetch(`${API_BASE_URL}/api/users/${myId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateBody),
+      });
+
+      if (updateRes.ok) {
+        // 💡 ማጂክ: ንሞባይልና እውን ሪፍረሽ ከየድለዮ ቀጥታ ንቕይሮ
+        if (type === "ባነር") user.bannerPic = newImageUrl;
+        else user.profilePic = newImageUrl;
+
+        Alert.alert("ዕዉት", `${type} ስእሊ ብዓወት ተቐይሩ ኣሎ!`);
+      } else {
+        const errorMsg = await updateRes.text();
+        Alert.alert("ጌጋ ሰርቨር", `ምኽንያት: ${errorMsg.substring(0, 50)}`);
+      }
+    } catch (e) {
+      console.log("Image Upload Error:", e);
+      Alert.alert("ጌጋ ኔትወርክ", "ስእሊ ምስ ሰርቨር ክራኸብ ኣይከኣለን።");
+    }
   };
 
   const getDisplayData = () => {
@@ -504,33 +636,13 @@ export default function ProfileScreen() {
       ]}
       activeOpacity={0.8}
       onPress={() => {
-        // 💡 ማጂክ: እቲ ሎጂክ ኣብዚ ይጅምር (ሰለስተዮም ምርጫታት)
-
-        const myId = user?._id || user?.id;
-        const isMyProduct =
-          String(item.sellerId || item.vendorId || item.userId) ===
-          String(myId);
-
-        // 1️⃣ ምርጫ ሓደ: ኣብ "Ads" (ናተይ ኣቕሑት) ታብ እንተለና
+        // 💡 ማጂክ: እቲ "isMyProduct" ዝብል ጎስት ኮድ ብሙሉኡ ጠፊኡ ኣሎ!
         if (activeTab === "ads") {
+          // 1️⃣ ኣብ ናተይ ዕዳጋ (My Ads) እንተኾይኑ ጥራሕ ናብ Edit/Delete ዳሽቦርድ ይኸፍት
           setSelectedProduct(item);
-          setManageModalVisible(true); // ናይ Edit/Delete ዳሽቦርድ ይኸፍት
-        }
-
-        // 2️⃣ ምርጫ ክልተ: ኣብ "Saved" (ዕቑባት) ታብ እንተለና
-        else if (activeTab === "saved") {
-          if (isMyProduct) {
-            // ናተይ ኣቕሓ እንተኾይኑ Save ዝገበርክዎ፡ ዳሽቦርድ ይኸፍት
-            setSelectedProduct(item);
-            setManageModalVisible(true);
-          } else {
-            // ናይ ካልእ ሰብ ኣቕሓ እንተኾይኑ፡ ናብ መደወሊ (Details) ይወስድ
-            router.push(`/product/${item._id || item.id}` as any);
-          }
-        }
-
-        // 3️⃣ ምርጫ ሰለስተ: ንኻልእ ኩነታት (Default)
-        else {
+          setManageModalVisible(true);
+        } else {
+          // 2️⃣ ኣብ Saved (ወይ ካልእ) እንተኾይኑ ግና ብቐጥታ ናብ ዕዳጋ (Details) ይወስድ
           router.push(`/product/${item._id || item.id}` as any);
         }
       }}
@@ -1042,7 +1154,7 @@ export default function ProfileScreen() {
                 style={styles.saveBtn}
                 onPress={() => {
                   setEditProfileVisible(false);
-                  Alert.alert("ዕዉት", "ፕሮፋይልካ ተቐይሩ ኣሎ!");
+                  handleUpdateProfile(); // 💡 ሓዱሽ ማጂክ: ናብ ሰርቨር ስደዶ!
                 }}
               >
                 <Text style={styles.saveText}>Save</Text>
@@ -1119,7 +1231,7 @@ export default function ProfileScreen() {
                 style={styles.saveBtn}
                 onPress={() => {
                   setSocialLinksVisible(false);
-                  Alert.alert("ዕዉት", "ሊንክታትካ ተዓቒቦም ኣለዉ!");
+                  handleUpdateProfile(); // 💡 ሓዱሽ ማጂክ: ናብ ሰርቨር ስደዶ!
                 }}
               >
                 <Text style={styles.saveText}>Save Links</Text>

@@ -2,9 +2,8 @@
 // 🚀 ምዕራፍ 1: መእተዊ (Imports)
 // ==========================================================
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useContext, useState } from "react";
 import {
   Platform,
   RefreshControl,
@@ -17,14 +16,13 @@ import {
   View,
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
-import { ThemeContext } from "../../context/ThemeContext"; // 💡 ሓዱሽ: ዳርክ ሞድ ሓንጎል መጸውዒ
+import { ThemeContext } from "../../context/ThemeContext";
 
 const API_BASE_URL = "https://meyda-app.onrender.com";
 
 export default function NotificationScreen() {
   const router = useRouter();
   const { user } = useContext(AuthContext);
-  // 💡 ማጂክ: ዳርክ ሞድ ሓንጎል ንጽውዕ (ብዘይ መጥወቒት)
   const { isDarkMode } = useContext(ThemeContext);
 
   // ==========================================================
@@ -38,88 +36,70 @@ export default function NotificationScreen() {
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
 
   // ==========================================================
-  // 🚀 ምዕራፍ 3: መበገሲ ማጂክ (Fetch Real Data or Mock Fallback)
+  // 🚀 ምዕራፍ 3: ህያው ማጂክ (Fetch Dynamic Data)
   // ==========================================================
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
+  // 💡 ማጂክ: ፔጅ ምስ ተኸፍተት ኩሉግዜ ሓዱሽ ዳታ ተምጽእ
+  useFocusEffect(
+    useCallback(() => {
+      fetchNotifications();
+    }, [user]),
+  );
 
   const fetchNotifications = async () => {
     if (!user) return;
     try {
-      const token = await AsyncStorage.getItem("meydaToken");
-      const res = await fetch(
-        `${API_BASE_URL}/api/notifications/${user._id || user.id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+      const myId = user._id || user.id;
+
+      // 1️⃣ ካብ Message ዳታቤዝ (ላይክ: ኮሜንት: ሜሰጅ) ንስሕብ
+      const msgRes = await fetch(`${API_BASE_URL}/api/messages/${myId}`);
+      let notifsData = [];
+      if (msgRes.ok) {
+        notifsData = await msgRes.json();
+      }
+
+      // 2️⃣ ካብ News ዳታቤዝ (ወግዓውያን ሓበሬታታት) ንስሕብ
+      const newsRes = await fetch(`${API_BASE_URL}/api/news`);
+      if (newsRes.ok) {
+        const allNews = await newsRes.json();
+        const officialNews = allNews.filter(
+          (n: any) => n.category === "ወግዓዊ" || n.isPinned,
+        );
+
+        // ንዜናታት ናብ ፎርማት ናይ ኖቲፊኬሽን ንቕይሮም
+        const newsNotifs = officialNews.map((n: any) => ({
+          _id: n._id,
+          id: n._id,
+          type: "system",
+          isRead: true, // ዜና ኩሉግዜ ዝተነበበ ኮይኑ እዩ ዝመጽእ
+          senderId: "admin",
+          senderName: "Meyda",
+          text: n.title || "ሓዱሽ ሓበሬታ ካብ Meyda",
+          createdAt: n.createdAt,
+          productId: null,
+          isNewsItem: true, // 💡 ማጂክ: ናብ ዜና ፔጅ ምእንቲ ክንመርሖ
+        }));
+        notifsData = [...notifsData, ...newsNotifs];
+      }
+
+      // 3️⃣ ብግዜኦም (Date) ንሰርዓዮም (ሓደስቲ ኣብ ላዕሊ)
+      notifsData.sort(
+        (a: any, b: any) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
 
-      if (res.ok) {
-        const data = await res.json();
-        setAllNotifications(data);
-      } else {
-        loadMockData(); // ሰርቨር እንተዘየለ ወይ ጌጋ እንተሃልዩ ነዚኣ የርኢ
-      }
+      setAllNotifications(notifsData);
     } catch (error) {
-      loadMockData();
+      console.log("Error fetching notifications:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchNotifications();
-    setRefreshing(false);
-  }, []);
-
-  // 💡 ናይ ፈተነ ዳታ (ንዲዛይን ምርኣይ)
-  const loadMockData = () => {
-    const mockNotifs = [
-      {
-        id: "n1",
-        type: "message",
-        isRead: false,
-        senderId: "u2",
-        senderName: "Hagos",
-        text: "ሰላም ጀንትራ፡ እቲ ላፕቶፕ ክንደይ ኢኻ ትሸጦ ዘለኻ?",
-        createdAt: new Date().toISOString(),
-        productId: null,
-      },
-      {
-        id: "n2",
-        type: "like",
-        isRead: false,
-        senderId: "u3",
-        senderName: "Sara",
-        text: "ንብረትካ ላይክ ጌራቶ ኣላ።",
-        createdAt: new Date(Date.now() - 3600000).toISOString(),
-        productId: "p123",
-      },
-      {
-        id: "n3",
-        type: "comment",
-        isRead: true,
-        senderId: "u4",
-        senderName: "Aman",
-        text: "ኣብ ፖስትካ ርእይቶ ጽሒፉ:- 'ጽቡቕ ስራሕ!'",
-        createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-        productId: "p456",
-      },
-      {
-        id: "n4",
-        type: "system",
-        isRead: true,
-        senderId: "admin",
-        senderName: "Meyda",
-        text: "እንቋዕ ብደሓን መጻእካ ናብ ሜዳ!",
-        createdAt: new Date(Date.now() - 86400000 * 8).toISOString(),
-        productId: null,
-      },
-    ];
-    setAllNotifications(mockNotifs);
-  };
+  }, [user]);
 
   // ==========================================================
   // 🚀 ምዕራፍ 4: Smart Time Grouping & Filtering
@@ -170,37 +150,49 @@ export default function NotificationScreen() {
   // 🚀 ምዕራፍ 5: ተግባራት (Actions: Read & Deep Link)
   // ==========================================================
   const markAllAsRead = async () => {
+    if (!user) return;
+    const myId = user._id || user.id;
     const updated = allNotifications.map((n) => ({ ...n, isRead: true }));
     setAllNotifications(updated);
     try {
-      const token = await AsyncStorage.getItem("meydaToken");
-      await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
+      await fetch(`${API_BASE_URL}/api/messages/user/${myId}/readAll`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
       });
-    } catch (e) {}
+    } catch (e) {
+      console.log("Error marking all read", e);
+    }
   };
 
   const handleNotificationClick = async (notif: any) => {
-    if (!notif.isRead) {
+    // 1️⃣ ጌና ዘይተነበበ እንተኾይኑ፡ ንሰርቨር ነግሪኻ ነታ ቀይሕ ባጅ ኣጥፍኣያ
+    if (!notif.isRead && !notif.isNewsItem) {
       const updated = allNotifications.map((n) =>
-        n.id === notif.id ? { ...n, isRead: true } : n,
+        (n._id || n.id) === (notif._id || notif.id)
+          ? { ...n, isRead: true }
+          : n,
       );
       setAllNotifications(updated);
       try {
-        const token = await AsyncStorage.getItem("meydaToken");
-        await fetch(`${API_BASE_URL}/api/notifications/${notif.id}/read`, {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      } catch (e) {}
+        await fetch(
+          `${API_BASE_URL}/api/messages/${notif._id || notif.id}/read`,
+          {
+            method: "PUT",
+          },
+        );
+      } catch (e) {
+        console.log("Error marking read", e);
+      }
     }
 
-    if (notif.type === "message") {
-      router.push(`/chat/${notif.senderId}` as any);
+    // 2️⃣ ናብቲ ትኽክለኛ ፔጅ ውሰዶ
+    if (notif.isNewsItem) {
+      router.push("/(tabs)/news" as any); // Meyda Update ናብ ዜና
+    } else if (notif.type === "message") {
+      router.push(`/chat/${notif.senderId}` as any); // ሜሰጅ ናብ ቻት
     } else if (notif.type === "like" || notif.type === "comment") {
-      if (notif.productId) router.push(`/product/${notif.productId}` as any);
-      else router.push(`/news` as any);
+      if (notif.productId)
+        router.push(`/product/${notif.productId}` as any); // ላይክ/ኮሜንት ናብ ዕዳጋ
+      else router.push(`/(tabs)/news` as any); // እንተዘየለ ናብ ዜና
     } else {
       router.push(`/(tabs)/home` as any);
     }
@@ -284,7 +276,15 @@ export default function NotificationScreen() {
     </View>
   );
 
-  const getIconConfig = (type: string) => {
+  const getIconConfig = (type: string, text: string = "") => {
+    // 💡 ማጂክ: ን "Meyda" Update ፍሉይ ምልክት (Megaphone) የርኢ
+    if (type === "system" && text.includes("Meyda")) {
+      return {
+        name: "megaphone",
+        color: "#f39c12",
+        bg: "rgba(243, 156, 18, 0.15)",
+      };
+    }
     switch (type) {
       case "message":
         return {
@@ -320,7 +320,7 @@ export default function NotificationScreen() {
   };
 
   const renderNotificationItem = ({ item }: any) => {
-    const iconConfig = getIconConfig(item.type);
+    const iconConfig = getIconConfig(item.type, item.senderName);
     const dateObj = new Date(item.createdAt);
     const timeString = dateObj.toLocaleTimeString([], {
       hour: "2-digit",
@@ -421,6 +421,7 @@ export default function NotificationScreen() {
             { backgroundColor: isDarkMode ? "#121212" : "#f9fbfd" },
           ]}
         >
+          {/* Skeleton Loaders */}
           <View
             style={[
               styles.notifItem,
@@ -447,10 +448,10 @@ export default function NotificationScreen() {
       ) : (
         <SectionList
           sections={groupedData}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id || item.id}
           renderItem={renderNotificationItem}
           renderSectionHeader={renderSectionHeader}
-          contentContainerStyle={{ paddingBottom: 80 }} // 💡 ታሕቲ ምእንቲ ከይሕባእ
+          contentContainerStyle={{ paddingBottom: 80 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

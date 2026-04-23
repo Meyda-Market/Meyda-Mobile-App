@@ -24,7 +24,7 @@ import {
   View,
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
-import { ThemeContext } from "../../context/ThemeContext"; // 💡 ሓዱሽ: ዳርክ ሞድ ሓንጎል
+import { ThemeContext } from "../../context/ThemeContext";
 
 const { width } = Dimensions.get("window");
 const API_BASE_URL = "https://meyda-app.onrender.com";
@@ -36,7 +36,7 @@ export default function ProductDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useContext(AuthContext);
-  const { isDarkMode } = useContext(ThemeContext); // 💡 ማጂክ: ዳርክ ሞድ ንጽውዕ
+  const { isDarkMode } = useContext(ThemeContext);
 
   const [product, setProduct] = useState<any>(null);
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
@@ -49,6 +49,7 @@ export default function ProductDetail() {
   const [isSaved, setIsSaved] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
+  const [vendorProfilePic, setVendorProfilePic] = useState<string | null>(null);
 
   // ==========================================================
   // 🚀 ምዕራፍ 3: ሓበሬታ ካብ ሰርቨር ምምጻእ
@@ -67,6 +68,22 @@ export default function ProductDetail() {
         (item: any) => String(item._id) === String(id),
       );
       setProduct(singleProduct);
+      // 💡 ማጂክ 2: ፕሮፋይል ስእሊ ናይቲ ነጋዳይ ካብ ሰርቨር ንጽውዓዮ ኣለና!
+      const vId =
+        singleProduct?.sellerId ||
+        singleProduct?.vendorId ||
+        singleProduct?.userId;
+      if (vId) {
+        try {
+          const userRes = await fetch(`${API_BASE_URL}/api/users/${vId}`);
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            setVendorProfilePic(userData.profilePic);
+          }
+        } catch (e) {
+          console.log("ጌጋ ስእሊ ምምጻእ:", e);
+        }
+      }
 
       const myId = user?._id || user?.id;
       if (myId && singleProduct?.savedBy?.includes(myId)) {
@@ -122,7 +139,7 @@ export default function ProductDetail() {
   }, [productImages.length]);
 
   // ==========================================================
-  // 🚀 ምዕራፍ 5: ሓደስቲ ማጂካት ናይ (Save, Share, Report, Call, Msg)
+  // 🚀 ምዕራፍ 5: ማጂካት ናይ (Save, Share, Report, Delete, Call, Msg)
   // ==========================================================
   const handleToggleSave = async () => {
     if (!user) {
@@ -197,6 +214,41 @@ export default function ProductDetail() {
     } as any);
   };
 
+  // 💡 ሓዱሽ: Delete ፋንክሽን
+  const handleDeleteProduct = () => {
+    Alert.alert(
+      "መጠንቀቕታ!",
+      `ነዚ "${product?.title || product?.name}" ብርግጽ ክትድምስሶ ትደሊ ዲኻ? ንድሕሪት ኣይምለስን እዩ!`,
+      [
+        { text: "ኣይደልን", style: "cancel" },
+        {
+          text: "ደምስሶ",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem("meydaToken");
+              const response = await fetch(
+                `${API_BASE_URL}/api/products/${id}`,
+                {
+                  method: "DELETE",
+                  headers: { Authorization: `Bearer ${token}` },
+                },
+              );
+
+              if (response.ok) {
+                Alert.alert("ዕዉት", "ንብረት ብዓወት ተደምሲሱ ኣሎ!", [
+                  { text: "OK", onPress: () => router.back() },
+                ]);
+              } else {
+                Alert.alert("ጌጋ", "ንብረት ምድምሳስ ኣይተኻእለን።");
+              }
+            } catch (error) {}
+          },
+        },
+      ],
+    );
+  };
+
   if (loading) {
     return (
       <View
@@ -262,6 +314,11 @@ export default function ProductDetail() {
       </View>
     );
 
+  // 💡 መረጋገጺ ዋና ኣቕሓ ምዃኑ (ን Delete)
+  const vendorId = product?.sellerId || product?.vendorId || product?.userId;
+  const myId = user?._id || user?.id;
+  const canDelete = user && (user.role === "admin" || user.role === "owner");
+
   // ==========================================================
   // 🚀 ምዕራፍ 6: ጠቕላላ ስክሪን (Main Render)
   // ==========================================================
@@ -287,6 +344,15 @@ export default function ProductDetail() {
           ),
           headerRight: () => (
             <View style={{ flexDirection: "row", alignItems: "center" }}>
+              {/* 💡 ማጂክ: Delete Icon ተወሲኹ ኣሎ */}
+              {canDelete && (
+                <TouchableOpacity
+                  style={{ marginRight: 15 }}
+                  onPress={handleDeleteProduct}
+                >
+                  <Ionicons name="trash" size={22} color="#fff" />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={{ marginRight: 15 }}
                 onPress={handleToggleSave}
@@ -359,15 +425,42 @@ export default function ProductDetail() {
             { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
           ]}
         >
-          <Text style={styles.productPrice}>{product.price} Br</Text>
-          <Text
-            style={[
-              styles.productTitle,
-              { color: isDarkMode ? "#FFF" : "#222" },
-            ]}
-          >
-            {product.name || product.title}
-          </Text>
+          {/* 💡 ማጂክ: ዋጋን ኣርእስትን ምስ ፕሮፋይል ኣይኮን (Avatar) ብሓንሳብ */}
+          <View style={styles.headerInfoRow}>
+            <View style={{ flex: 1, paddingRight: 15 }}>
+              <Text style={styles.productPrice}>{product.price} Br</Text>
+              <Text
+                style={[
+                  styles.productTitle,
+                  { color: isDarkMode ? "#FFF" : "#222" },
+                ]}
+              >
+                {product.name || product.title}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.topVendorAvatarContainer,
+                { borderColor: isDarkMode ? "#333" : "#eee" },
+              ]}
+              activeOpacity={0.8}
+              onPress={() => {
+                if (vendorId) router.push(`/profile/${vendorId}` as any);
+              }}
+            >
+              <Image
+                source={{
+                  // 💡 ማጂክ 3: እታ ሕጂ ዝጸዋዕናያ ስእሊ (vendorProfilePic) ኣብዚ ትኣቱ!
+                  uri: vendorProfilePic
+                    ? getImageUrl(vendorProfilePic)
+                    : "https://via.placeholder.com/50",
+                }}
+                style={styles.topVendorAvatar}
+              />
+              <View style={styles.onlineDot} />
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.metaRow}>
             <Text
@@ -440,41 +533,6 @@ export default function ProductDetail() {
               </View>
             </View>
           )}
-
-          <View
-            style={[
-              styles.divider,
-              { backgroundColor: isDarkMode ? "#333" : "#f0f0f0" },
-            ]}
-          />
-
-          <TouchableOpacity
-            style={styles.vendorBox}
-            onPress={() => {
-              router.push(
-                `/profile/${product.sellerId || product.vendorId}` as any,
-              );
-            }}
-          >
-            <Image
-              source={{
-                uri: product.vendorProfile || "https://via.placeholder.com/50",
-              }}
-              style={styles.vendorPic}
-            />
-            <View style={styles.vendorInfo}>
-              <Text
-                style={[
-                  styles.vendorName,
-                  { color: isDarkMode ? "#FFF" : "#333" },
-                ]}
-              >
-                {product.vendorName || "Meyda Vendor"}
-              </Text>
-              <Text style={styles.vendorStatus}>🟢 ኦንላይን ኣሎ</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#029eff" />
-          </TouchableOpacity>
 
           <View
             style={[
@@ -638,7 +696,7 @@ export default function ProductDetail() {
         </TouchableOpacity>
       </View>
 
-      {/* 💡 ሓዱሽ ሪፖርት ፖፕ-ኣፕ (Report Modal) */}
+      {/* 💡 ሪፖርት ፖፕ-ኣፕ */}
       <Modal visible={showReportModal} transparent={true} animationType="fade">
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -710,7 +768,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f5f8fa" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
 
-  // Skeleton Loading
   skeletonImage: { width: "100%", height: 280, backgroundColor: "#e1e4e8" },
   skeletonTitle: {
     width: "70%",
@@ -764,6 +821,39 @@ const styles = StyleSheet.create({
     padding: 15,
     elevation: 5,
   },
+
+  headerInfoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 5,
+  },
+  topVendorAvatarContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    marginTop: 5,
+    position: "relative",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  topVendorAvatar: { width: "100%", height: "100%", borderRadius: 25 },
+  onlineDot: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    backgroundColor: "#2ecc71",
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+
   productPrice: {
     fontSize: 22,
     fontWeight: "bold",
@@ -808,12 +898,6 @@ const styles = StyleSheet.create({
   specGrid: { flexDirection: "row", gap: 15 },
   specItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   specText: { fontSize: 12, color: "#333", fontWeight: "bold" },
-
-  vendorBox: { flexDirection: "row", alignItems: "center" },
-  vendorPic: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
-  vendorInfo: { flex: 1 },
-  vendorName: { fontSize: 14, fontWeight: "bold", color: "#333" },
-  vendorStatus: { fontSize: 11, color: "green", marginTop: 2 },
 
   sectionTitle: { fontSize: 16, fontWeight: "bold", color: "#333" },
   description: { fontSize: 13, color: "#555", lineHeight: 20, marginTop: 6 },

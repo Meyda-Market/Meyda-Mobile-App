@@ -2,7 +2,6 @@
 // 🚀 ምዕራፍ 1: መእተዊ (Imports)
 // ==========================================================
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, {
   useCallback,
@@ -14,7 +13,6 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Dimensions,
   FlatList,
@@ -29,7 +27,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
 import { ThemeContext } from "../../context/ThemeContext";
@@ -128,14 +126,20 @@ const ProCarousel = ({ proProducts, router }: any) => {
               <Text style={styles.carouselTitle} numberOfLines={1}>
                 {item.title}
               </Text>
-              <Text style={styles.carouselLocation}>
-                <Ionicons name="location" size={12} color="#eee" />{" "}
-                {item.location}
-              </Text>
+
+              {/* 💡 ሎኬሽን ኮሜንት ጌርናዮ ኣለና (ኣይረአን እዩ)
+        <Text style={styles.carouselLocation}>
+          <Ionicons name="location" size={12} color="#eee" />{" "}
+          {item.location}
+        </Text>
+        */}
             </View>
-            <View style={styles.adPriceBadge}>
-              <Text style={styles.adPriceText}>{item.price} Br</Text>
-            </View>
+
+            {/* 💡 ዋጋ (Price) ኮሜንት ጌርናዮ ኣለና (ኣይረአን እዩ)
+      <View style={styles.adPriceBadge}>
+        <Text style={styles.adPriceText}>{item.price} Br</Text>
+      </View>
+      */}
           </View>
         </View>
       </TouchableOpacity>
@@ -242,9 +246,6 @@ export default function HomeScreen() {
   const [showRegionModal, setShowRegionModal] = useState(false);
   const [activeRegionStep, setActiveRegionStep] = useState<string | null>(null);
 
-  const [vendorProfiles, setVendorProfiles] = useState<Record<string, string>>(
-    {},
-  );
   const categoryListRef = useRef<any>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const diffClamp = Animated.diffClamp(scrollY, 0, HEADER_HEIGHT + 30);
@@ -271,24 +272,6 @@ export default function HomeScreen() {
         setLoading(false);
         return;
       }
-
-      const sellerIds = [
-        ...new Set(data.map((p: any) => p.sellerId).filter(Boolean)),
-      ];
-      const profilesMap: Record<string, string> = {};
-
-      await Promise.all(
-        sellerIds.map(async (id: any) => {
-          try {
-            const userRes = await fetch(`${API_BASE_URL}/api/users/${id}`);
-            if (userRes.ok) {
-              const userData = await userRes.json();
-              profilesMap[id] = userData.profilePic;
-            }
-          } catch (e) {}
-        }),
-      );
-      setVendorProfiles(profilesMap);
 
       setAllProducts(data);
       setFilteredProducts(data);
@@ -318,90 +301,6 @@ export default function HomeScreen() {
   // ==========================================================
   // 🚀 ምዕራፍ 6: ናይ ልቢ (Save) & ንብረት ምድምሳስ (Delete)
   // ==========================================================
-  const handleToggleSave = async (
-    productId: string,
-    currentSavedBy: string[],
-  ) => {
-    if (!user) {
-      Alert.alert("መዘኻኸሪ", "ንብረት ሴቭ ንምግባር መጀመርታ ሎግ-ኢን ግበሩ!");
-      return;
-    }
-
-    const myId = user._id || user.id;
-    const isCurrentlySaved = currentSavedBy.includes(myId);
-
-    const updatedProducts = allProducts.map((p) => {
-      if (p._id === productId) {
-        let newSavedBy = [...(p.savedBy || [])];
-        if (isCurrentlySaved) {
-          newSavedBy = newSavedBy.filter((id: string) => id !== myId);
-        } else {
-          newSavedBy.push(myId);
-        }
-        return { ...p, savedBy: newSavedBy };
-      }
-      return p;
-    });
-
-    setAllProducts(updatedProducts);
-    setFilteredProducts(
-      updatedProducts.filter((p) =>
-        filteredProducts.some((fp) => fp._id === p._id),
-      ),
-    );
-
-    try {
-      const actionType = isCurrentlySaved ? "remove" : "add";
-      const token = await AsyncStorage.getItem("meydaToken");
-
-      await fetch(`${API_BASE_URL}/api/users/${myId}/save`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ productId: productId, action: actionType }),
-      });
-    } catch (error) {}
-  };
-
-  const handleDeleteProduct = (productId: string, productTitle: string) => {
-    Alert.alert(
-      "መጠንቀቕታ!",
-      `ነዚ "${productTitle}" ብርግጽ ክትድምስሶ ትደሊ ዲኻ? ንድሕሪት ኣይምለስን እዩ!`,
-      [
-        { text: "ኣይደልን (Cancel)", style: "cancel" },
-        {
-          text: "ደምስሶ (Delete)",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const token = await AsyncStorage.getItem("meydaToken");
-              const response = await fetch(
-                `${API_BASE_URL}/api/products/${productId}`,
-                {
-                  method: "DELETE",
-                  headers: { Authorization: `Bearer ${token}` },
-                },
-              );
-
-              if (response.ok) {
-                setAllProducts((prev) =>
-                  prev.filter((p) => p._id !== productId),
-                );
-                setFilteredProducts((prev) =>
-                  prev.filter((p) => p._id !== productId),
-                );
-                Alert.alert("ዕውት", "ንብረት ብዓወት ተደምሲሱ ኣሎ!");
-              } else {
-                Alert.alert("ጌጋ", "ንብረት ምድምሳስ ኣይተኻእለን።");
-              }
-            } catch (error) {}
-          },
-        },
-      ],
-    );
-  };
 
   // ==========================================================
   // 🚀 ምዕራፍ 7: መጻረዪ & ማጂክ Ad Injection
@@ -532,25 +431,15 @@ export default function HomeScreen() {
   );
 
   // ==========================================================
-  // 🚀 ምዕራፍ 9: ዲዛይን ናይ ሓደ ኣቕሓ (Product Card UI)
+  // 🚀 ምዕራፍ 9: ዲዛይን ናይ ሓደ ኣቕሓ (Product Card UI) - 100% Cleaned
   // ==========================================================
   const renderProduct = ({ item }: any) => {
-    const savedByArray = item.savedBy || [];
-    const saveCount = savedByArray.length;
-    const myId = user ? user._id || user.id : null;
-    const isSavedByMe = myId ? savedByArray.includes(myId) : false;
-
-    const vendorId = item.sellerId || item.vendorId || item.userId;
-    const vendorPicUrl = vendorProfiles[vendorId];
-    const canDelete =
-      user &&
-      (user.role === "admin" || user.role === "owner" || vendorId === myId);
+    // 💡 ማጂክ: ኩሉ እቲ ጎስት ኮድ ጠፊኡ ኣሎ! ብቐጥታ ናብ ዲዛይን ንኣቱ።
 
     return (
       <TouchableOpacity
         style={[
           styles.productCard,
-          // 💡 ካርድ ዳርክ ሞድ ትለብስ (ፈኲስ ጸሊም)
           { backgroundColor: isDarkMode ? "#1E1E1E" : "#FFFFFF" },
         ]}
         activeOpacity={0.8}
@@ -561,10 +450,8 @@ export default function HomeScreen() {
             String(myId);
 
           if (isMyProduct) {
-            // ናይ ባዕልኻ እንተኾይኑ ናብ Edit ይወስድ
             router.push(`/edit-product/${item._id || item.id}` as any);
           } else {
-            // ናይ ካልእ እንተኾይኑ ናብ መደወሊ ይወስድ
             router.push(`/product/${item._id || item.id}` as any);
           }
         }}
@@ -589,59 +476,9 @@ export default function HomeScreen() {
               />
             </View>
           )}
-
-          {canDelete && (
-            <View style={styles.actionTopLeft}>
-              <TouchableOpacity
-                style={styles.smallActionBtn}
-                onPress={() => handleDeleteProduct(item._id, item.title)}
-              >
-                <Ionicons name="trash" size={14} color="#e74c3c" />
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <View style={styles.actionTopRight}>
-            <TouchableOpacity
-              style={styles.smallActionBtn}
-              onPress={() => handleToggleSave(item._id, savedByArray)}
-            >
-              <Ionicons
-                name={isSavedByMe ? "heart" : "heart-outline"}
-                size={14}
-                color={isSavedByMe ? "#ff4757" : "#555"}
-              />
-            </TouchableOpacity>
-            {saveCount > 0 && (
-              <View style={styles.saveCountBadge}>
-                <Text style={styles.saveCountText}>{saveCount}</Text>
-              </View>
-            )}
-          </View>
         </View>
 
-        <TouchableOpacity
-          // 💡 ማጂክ 1: ኣብ ዳርክ ሞድ እቲ ቦርደር ናብ ሕብሪ ናይቲ ካርድ (#1E1E1E) ይቀየር!
-          style={[
-            styles.userAvatarContainer,
-            { borderColor: isDarkMode ? "#1E1E1E" : "#ffffff" },
-          ]}
-          activeOpacity={0.7}
-          onPress={() => {
-            if (vendorId) router.push(`/profile/${vendorId}` as any);
-          }}
-        >
-          <Image
-            source={{
-              uri: vendorPicUrl
-                ? getImageUrl(vendorPicUrl)
-                : "https://via.placeholder.com/50",
-            }}
-            style={styles.userAvatar}
-          />
-        </TouchableOpacity>
-
-        <View style={styles.infoContainer}>
+        <View style={[styles.infoContainer, { marginTop: 8 }]}>
           {item.adType === "advert" || item.injectedAd ? (
             <Text style={styles.adPriceTextGrid}>
               <FontAwesome5 name="bullhorn" size={10} /> መወዓውዒ (Ad)
@@ -650,7 +487,6 @@ export default function HomeScreen() {
             <Text style={styles.priceTextGrid}>{item.price} Br</Text>
           )}
 
-          {/* 💡 ኣርእስቲ (Title) ኣብ ዳርክ ሞድ ጻዕዳ ይኸውን */}
           <Text
             style={[
               styles.titleTextGrid,
@@ -661,7 +497,6 @@ export default function HomeScreen() {
             {item.title}
           </Text>
 
-          {/* 💡 ቦታ (Location) ኣብ ዳርክ ሞድ ሓሙኽሻይ ይኸውን */}
           <Text
             style={[
               styles.locationTextGrid,
@@ -680,7 +515,6 @@ export default function HomeScreen() {
       </TouchableOpacity>
     );
   };
-
   // ==========================================================
   // 🚀 ምዕራፍ 10: ጠቕላላ ስክሪን (Main Render)
   // ==========================================================
@@ -1141,7 +975,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    marginRight: 10,
+    marginRight: 7,
     elevation: 1,
   },
   catPillActive: { backgroundColor: "#029eff", borderColor: "#029eff" },
@@ -1150,17 +984,18 @@ const styles = StyleSheet.create({
 
   // ናይ ኣቕሑ መጠን መስተኻኸሊ
   productCard: {
-    width: "48%",
+    width: "49%",
     backgroundColor: "#fff",
     borderRadius: 6,
     padding: 10,
     elevation: 3,
+    //marginBottom: 2,
     position: "relative",
   },
   imageContainer: {
     width: "100%",
-    height: 130,
-    borderRadius: 8,
+    height: 150,
+    borderRadius: 1,
     backgroundColor: "#fafafa",
     overflow: "hidden",
     position: "relative",
@@ -1170,50 +1005,10 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     justifyContent: "center",
+    //backgroundColor: "#fff",
     alignItems: "center",
   },
 
-  actionTopLeft: { position: "absolute", top: 8, left: 8, zIndex: 5 },
-  actionTopRight: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    alignItems: "center",
-    zIndex: 5,
-  },
-  smallActionBtn: {
-    backgroundColor: "rgba(255,255,255,0.9)",
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 2,
-  },
-  saveCountBadge: {
-    backgroundColor: "rgba(0,0,0,0.5)",
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginTop: 4,
-  },
-  saveCountText: { color: "#fff", fontSize: 7, fontWeight: "bold" },
-
-  userAvatarContainer: {
-    position: "absolute",
-    top: 120,
-    left: 15,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "#029eff",
-    borderWidth: 2,
-    borderColor: "#fff",
-    overflow: "hidden",
-    zIndex: 10,
-    elevation: 4,
-  },
-  userAvatar: { width: "100%", height: "100%" },
   infoContainer: { marginTop: 20 },
   priceTextGrid: { fontSize: 16, fontWeight: "bold", color: "#029eff" },
   adPriceTextGrid: { fontSize: 13, fontWeight: "bold", color: "#f1c40f" },
