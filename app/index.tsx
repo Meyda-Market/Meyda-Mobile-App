@@ -53,21 +53,20 @@ export default function AuthScreen() {
   // 🚀 ምዕራፍ 2: ጎግል ሎግ-ኢን
   // ==========================================================
   const [request, response, promptAsync] = Google.useAuthRequest({
-    // 👈 እተን 3-ቲአን (Android, iOS, Web) ብግዲ ክህልዋ ኣለወን!
     webClientId:
       "704636644932-64c1pihcjoqgi1bupvim61elgj4i5tsm.apps.googleusercontent.com",
+    // 👈 🔥 ማጂክ 1: ናይ Android Client ID ብሓዱሽ ተቐይሩ ኣሎ!
     androidClientId:
-      "704636644932-64c1pihcjoqgi1bupvim61elgj4i5tsm.apps.googleusercontent.com",
+      "704636644932-5frpinuu7ik5590g2627l2ene8la58b6.apps.googleusercontent.com",
     iosClientId:
       "704636644932-64c1pihcjoqgi1bupvim61elgj4i5tsm.apps.googleusercontent.com",
 
-    // 👈 💡 ማጂክ: ነታ ቀያሕ ንምሕባእን Return Address ንምሃብን
+    // 👈 🔥 ማጂክ 2: useProxy ተደምሲሱ ኣሎ ምኽንያቱ ሓቀኛ APK ኢና ንሃንጽ ዘለና
     // @ts-ignore
-    redirectUri: AuthSession.makeRedirectUri({ useProxy: true }),
+    redirectUri: AuthSession.makeRedirectUri(),
   });
 
   useEffect(() => {
-    // 1. መጀመርታ ካብ ጎግል ዝመጸ መልሲ ንርአ
     if (response) {
       console.log("1. Google Response Status:", response.type);
     }
@@ -91,7 +90,6 @@ export default function AuthScreen() {
             `${API_BASE_URL}/api/users/google-login`,
           );
 
-          // ናብ ባክ-ኤንድ ንሰዶ
           const serverRes = await fetch(
             `${API_BASE_URL}/api/users/google-login`,
             {
@@ -130,6 +128,7 @@ export default function AuthScreen() {
         .finally(() => setLoading(false));
     }
   }, [response]);
+
   useEffect(() => {
     const checkLoginStatus = async () => {
       const token = await AsyncStorage.getItem("meydaToken");
@@ -168,7 +167,6 @@ export default function AuthScreen() {
     }
   };
 
-  // ... (Signup and OTP functions remain the exact same as your previous code)
   const handleSignup = async () => {
     /* ... existing code ... */
   };
@@ -240,12 +238,12 @@ export default function AuthScreen() {
               <View style={styles.formContainer}>
                 <TouchableOpacity
                   style={styles.googleBtn}
+                  // 👈 🔥 ማጂክ 3: useProxy ተደምሲሱ ኣሎ
                   // @ts-ignore
-                  onPress={() => promptAsync({ useProxy: true })}
+                  onPress={() => promptAsync()}
                   disabled={!request || loading}
                 >
                   <View style={styles.googleIconContainer}>
-                    {/* 👈 💡 ማጂክ 3: ኦሪጅናል ጎግል ሎጎ ብ PNG ፎርማት ተቐይሩ ኣሎ! */}
                     <Image
                       source={{
                         uri: "https://developers.google.com/identity/images/g-logo.png",
@@ -321,12 +319,12 @@ export default function AuthScreen() {
                   <View>
                     <TouchableOpacity
                       style={styles.googleBtn}
+                      // 👈 🔥 ማጂክ 4: useProxy ተደምሲሱ ኣሎ
                       // @ts-ignore
-                      onPress={() => promptAsync({ useProxy: true })}
+                      onPress={() => promptAsync()}
                       disabled={!request || loading}
                     >
                       <View style={styles.googleIconContainer}>
-                        {/* 👈 💡 ማጂክ 3: ኦሪጅናል ጎግል ሎጎ */}
                         <Image
                           source={{
                             uri: "https://developers.google.com/identity/images/g-logo.png",
@@ -440,7 +438,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
   },
   googleIconContainer: { backgroundColor: "#fff", padding: 8, borderRadius: 6 },
-  googleIcon: { width: 24, height: 24 }, // 💡 ጽፉፍ ሳይዝ ን ሎጎ
+  googleIcon: { width: 24, height: 24 },
   googleBtnText: {
     flex: 1,
     textAlign: "center",
