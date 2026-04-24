@@ -20,9 +20,7 @@ import {
   Modal,
   Platform,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -126,20 +124,7 @@ const ProCarousel = ({ proProducts, router }: any) => {
               <Text style={styles.carouselTitle} numberOfLines={1}>
                 {item.title}
               </Text>
-
-              {/* 💡 ሎኬሽን ኮሜንት ጌርናዮ ኣለና (ኣይረአን እዩ)
-        <Text style={styles.carouselLocation}>
-          <Ionicons name="location" size={12} color="#eee" />{" "}
-          {item.location}
-        </Text>
-        */}
             </View>
-
-            {/* 💡 ዋጋ (Price) ኮሜንት ጌርናዮ ኣለና (ኣይረአን እዩ)
-      <View style={styles.adPriceBadge}>
-        <Text style={styles.adPriceText}>{item.price} Br</Text>
-      </View>
-      */}
           </View>
         </View>
       </TouchableOpacity>
@@ -434,13 +419,16 @@ export default function HomeScreen() {
   // 🚀 ምዕራፍ 9: ዲዛይን ናይ ሓደ ኣቕሓ (Product Card UI) - 100% Cleaned
   // ==========================================================
   const renderProduct = ({ item }: any) => {
-    // 💡 ማጂክ: ኩሉ እቲ ጎስት ኮድ ጠፊኡ ኣሎ! ብቐጥታ ናብ ዲዛይን ንኣቱ።
-
     return (
       <TouchableOpacity
         style={[
           styles.productCard,
-          { backgroundColor: isDarkMode ? "#1E1E1E" : "#FFFFFF" },
+          // 💡 Pro Magic: ብርሃንን ጸልማትን ብዘየገድስ ጽቡቕ ጽላሎት (Shadow) ወሲኸላ ኣለኹ!
+          {
+            backgroundColor: isDarkMode ? "#1E1E1E" : "#FFFFFF",
+            shadowColor: isDarkMode ? "#000" : "#999",
+            elevation: isDarkMode ? 4 : 3,
+          },
         ]}
         activeOpacity={0.8}
         onPress={() => {
@@ -515,11 +503,13 @@ export default function HomeScreen() {
       </TouchableOpacity>
     );
   };
+
   // ==========================================================
   // 🚀 ምዕራፍ 10: ጠቕላላ ስክሪን (Main Render)
   // ==========================================================
   return (
-    <SafeAreaView
+    // 💡 ማጂክ 1: እታ SafeAreaView ናብ View ተቐይራ ኣላ ምእንቲ ነታ ስታተስ ባር ከይትዕፍና
+    <View
       style={[
         styles.container,
         // 💡 ዋና ድሕረ-ባይታ ፔጅ ዳርክ ሞድ ይለብስ
@@ -613,7 +603,8 @@ export default function HomeScreen() {
           ListHeaderComponent={renderHeader}
           numColumns={2}
           columnWrapperStyle={styles.row}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          // 💡 ማጂክ 3: እቲ ታሕተዋይ ባር ንኣቕሑ ከይሽፍኖም 100px ክፍተት ወሲኸሉ ኣለኹ!
+          contentContainerStyle={{ paddingBottom: 100 }}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
             { useNativeDriver: true },
@@ -807,7 +798,7 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -825,7 +816,8 @@ const styles = StyleSheet.create({
 
   animatedHeaderContainer: {
     position: "absolute",
-    top: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+    // 💡 ማጂክ 4: StatusBar.currentHeight ደምሲሰዮ ኣለኹ (ሕጂ 0 እዩ)
+    top: 0,
     left: 0,
     right: 0,
     zIndex: 100,
@@ -989,8 +981,11 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     padding: 10,
     elevation: 3,
-    //marginBottom: 2,
     position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   imageContainer: {
     width: "100%",

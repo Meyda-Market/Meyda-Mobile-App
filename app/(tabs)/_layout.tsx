@@ -2,22 +2,39 @@
 // 🚀 መእተዊ (Imports)
 // ==========================================================
 import { Ionicons } from "@expo/vector-icons";
+import * as NavigationBar from "expo-navigation-bar"; // 💡 ማጂክ ን ታሕተዋይ ጸሊም ባር
 import { Tabs } from "expo-router";
-import React, { useContext } from "react";
-import { Platform, StatusBar, StyleSheet, View } from "react-native"; // 💡 ሓዱሽ: StatusBar ተወሲኻ
-import { useSafeAreaInsets } from "react-native-safe-area-context"; // 💡 ሓዱሽ: ማጂክ መለክዒ ጸሊም ባር
+import React, { useContext, useEffect } from "react";
+import { Platform, StatusBar, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemeContext } from "../../context/ThemeContext";
 
 export default function TabLayout() {
   const { isDarkMode } = useContext(ThemeContext);
-
-  // 💡 ማጂክ 1: እዚኣ ሞባይልካ ክንደይ ጸሊም ባር ከምዘለዋ ብትኽክል ትዕቅን!
   const insets = useSafeAreaInsets();
 
+  // 💡 ማጂክ 1: ነቲ ናይ ሞባይል ታሕተዋይ ባር (System Navigation) ብግዴታ ጸሊም ይገብሮ
+  useEffect(() => {
+    if (Platform.OS === "android") {
+      NavigationBar.setBackgroundColorAsync("#000000").catch(() => {});
+    }
+  }, []);
+
   return (
-    <>
-      {/* 💡 ማጂክ 2: እታ ዝደለኻያ ሰማያዊት ስታተስ ባር (ምስ ጻዕዳ ጽሑፍ/ባትሪ) */}
-      <StatusBar backgroundColor="#029eff" barStyle="light-content" />
+    // 💡 ማጂክ 2: እዚ Wrapper ነቲ ኣፕሊኬሽን ካብ ላዕሊ ብዓቐን እቲ ስታተስ ባር ንታሕቲ ይደፍኦ
+    <View
+      style={{ flex: 1, backgroundColor: isDarkMode ? "#121212" : "#f5f8fa" }}
+    >
+      {/* 💡 ማጂክ 3: እዚኣ ነታ ስታተስ ባር ልክዕ ብዓቐን ናይ ሞባይልካ ቆፎ ቆሪጻ 100% ሰማያዊ ትገብራ! */}
+      <View
+        style={{ height: insets.top, backgroundColor: "#029eff", zIndex: 1000 }}
+      >
+        <StatusBar
+          backgroundColor="#029eff"
+          barStyle="light-content"
+          translucent={true}
+        />
+      </View>
 
       <Tabs
         screenOptions={{
@@ -26,30 +43,18 @@ export default function TabLayout() {
           tabBarShowLabel: false,
           headerShown: false,
 
-          // 💡 ማጂክ 3: ዲዛይን ንኹሉ ቴሌፎናት ዝሰማማዕ ኮይኑ ተሰሪሑ ኣሎ
+          // 💡 ማጂክ 4: ታሕተዋይ ናቪጌሽን ባር (Compact & Clean) - "position: absolute" ደምሲስናዮ!
           tabBarStyle: {
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
             backgroundColor: isDarkMode ? "#1E1E1E" : "#ffffff",
-            borderTopLeftRadius: 15, // 👈 ቁሩብ ዝያዳ ማራኺ ክቢ ንምግባር
-            borderTopRightRadius: 15,
-            borderBottomLeftRadius: 0,
-            borderBottomRightRadius: 0,
-
-            // 👈 💡 ማጂክ 4: እቲ ጸሊም ባር (insets.bottom) ምስቲ ንቡር ቁመት ይድመር!
-            height: (Platform.OS === "ios" ? 85 : 65) + insets.bottom,
-
-            // 👈 💡 ማጂክ 5: ኣይኮናትን ጽሑፋትን ብዓቐን እቲ ጸሊም ባር ንላዕሊ ድፍእ ይብሉ
-            paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
-
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            height: 60, // 👈 ብጣዕሚ ኣሕጺርናዮ (ቦታ ከይወስድ)
             borderTopWidth: 0,
-            elevation: 10,
+            elevation: 15,
             shadowColor: "#000",
-            shadowOffset: { width: 0, height: -3 },
-            shadowOpacity: isDarkMode ? 0.3 : 0.1,
-            shadowRadius: 6,
+            shadowOffset: { width: 0, height: -5 },
+            shadowOpacity: 0.1,
+            shadowRadius: 5,
           },
         }}
       >
@@ -89,7 +94,6 @@ export default function TabLayout() {
               <View
                 style={[
                   styles.sellButton,
-                  // 💡 እቲ ዶብ (Border) ኣብ ጸልማት ጸሊም፡ ኣብ ብርሃን ድማ ፍዅስ ዝበለ ጻዕዳ ይኸውን
                   { borderColor: isDarkMode ? "#1E1E1E" : "#ffffff" },
                 ]}
               >
@@ -127,7 +131,7 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
-    </>
+    </View>
   );
 }
 
@@ -142,8 +146,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#029eff",
     justifyContent: "center",
     alignItems: "center",
-    // 💡 ማጂክ 6: እዛ መጥወቒት ምስቲ ሓዱሽ ቁመት ብትኽክል ንኽትቀናጆ ተመዓራርያ ኣላ
-    marginBottom: Platform.OS === "ios" ? 40 : 25,
+    // 💡 ማጂክ 5: ካብቲ ሓጺር ባር ንላዕሊ ቁሩብ ፍንትት ክትብል
+    top: -20,
     borderWidth: 5,
     elevation: 8,
     shadowColor: "#029eff",
