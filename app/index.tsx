@@ -22,112 +22,35 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import * as AuthSession from "expo-auth-session";
-import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
+// 👈 🔥 ማጂክ 1: ነቲ ኦሪጅናል ናይ ጎግል ቱል ኣእቲናዮ ኣለና
+import {
+  GoogleSignin
+} from "@react-native-google-signin/google-signin";
 
 LogBox.ignoreLogs(["Unable to activate keep awake"]);
-WebBrowser.maybeCompleteAuthSession();
 
 const { width } = Dimensions.get("window");
 const API_BASE_URL = "https://meyda-app.onrender.com";
+
+// 👈 🔥 ማጂክ 2: መለለዪ ናይ ጎግል (ኣብ ወጻኢ ኮይኑ ሓንሳብ ጥራሕ ይስራሕ)
+GoogleSignin.configure({
+  // እቲ Web Client ID ግድን የድልየና እዩ (ምእንቲ ምስ ባክ-ኤንድና ክረዳዳእ)
+  webClientId:
+    "704636644932-64c1pihcjoqgi1bupvim61elgj4i5tsm.apps.googleusercontent.com",
+});
 
 export default function AuthScreen() {
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
   const [loginId, setLoginId] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [showSignupMethod, setShowSignupMethod] = useState(true);
-  const [signupPhone, setSignupPhone] = useState("");
-  const [countryCode, setCountryCode] = useState("+251");
-  const [signupName, setSignupName] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [showForgotModal, setShowForgotModal] = useState(false);
-  const [forgotStep, setForgotStep] = useState(1);
-  const [forgotIdentifier, setForgotIdentifier] = useState("");
-  const [forgotOtp, setForgotOtp] = useState("");
-  const [forgotNewPassword, setForgotNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // (እተን ካልኦት ናይ ፎርጎት/OTP ስቴትስ ብምሕጻር ገዲፈየን ኣለኹ፣ ናትካ እንተደሊኻ ክትውስኸን ትኽእል)
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotIdentifier, setForgotIdentifier] = useState("");
+
   const router = useRouter();
-
-  // ==========================================================
-  // 🚀 ምዕራፍ 2: ጎግል ሎግ-ኢን
-  // ==========================================================
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId:
-      "704636644932-64c1pihcjoqgi1bupvim61elgj4i5tsm.apps.googleusercontent.com",
-    // 👈 🔥 ማጂክ 1: ናይ Android Client ID ብሓዱሽ ተቐይሩ ኣሎ!
-    androidClientId:
-      "704636644932-5frpinuu7ik5590g2627l2ene8la58b6.apps.googleusercontent.com",
-    iosClientId:
-      "704636644932-64c1pihcjoqgi1bupvim61elgj4i5tsm.apps.googleusercontent.com",
-
-    // 👈 🔥 ማጂክ 2: useProxy ተደምሲሱ ኣሎ ምኽንያቱ ሓቀኛ APK ኢና ንሃንጽ ዘለና
-    // @ts-ignore
-    redirectUri: AuthSession.makeRedirectUri(),
-  });
-
-  useEffect(() => {
-    if (response) {
-      console.log("1. Google Response Status:", response.type);
-    }
-
-    if (response?.type === "success") {
-      setLoading(true);
-      const { authentication } = response;
-      console.log(
-        "2. Google Token Found:",
-        authentication?.accessToken ? "Yes" : "No",
-      );
-
-      fetch("https://www.googleapis.com/userinfo/v2/me", {
-        headers: { Authorization: `Bearer ${authentication?.accessToken}` },
-      })
-        .then((res) => res.json())
-        .then(async (userInfo) => {
-          console.log("3. User Info from Google:", userInfo.email);
-          console.log(
-            "4. Sending to Backend API:",
-            `${API_BASE_URL}/api/users/google-login`,
-          );
-
-          const serverRes = await fetch(
-            `${API_BASE_URL}/api/users/google-login`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email: userInfo.email,
-                name: userInfo.name,
-                profilePic: userInfo.picture,
-                googleId: userInfo.id,
-              }),
-            },
-          );
-
-          console.log("5. Backend Status Code:", serverRes.status);
-          const data = await serverRes.json();
-          console.log("6. Backend Reply Data:", data);
-
-          if (serverRes.ok) {
-            await AsyncStorage.setItem("meydaToken", data.token);
-            await AsyncStorage.setItem(
-              "meydaUser",
-              JSON.stringify(data.user || data),
-            );
-            console.log("7. Success! Navigating to Home...");
-            router.replace("/(tabs)/home");
-          } else {
-            console.log("Backend Error:", data);
-            Alert.alert("ጌጋ", "ባክ-ኤንድ ኣይተቐበሎን");
-          }
-        })
-        .catch((error) => {
-          console.error("8. Caught a big error!", error);
-          Alert.alert("ጸገም", "ሓበሬታ ምምጻእ ኣይተኻእለን");
-        })
-        .finally(() => setLoading(false));
-    }
-  }, [response]);
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -137,6 +60,58 @@ export default function AuthScreen() {
     checkLoginStatus();
   }, []);
 
+  // ==========================================================
+  // 🚀 ምዕራፍ 2: ኦሪጅናል ጎግል ሎግ-ኢን (Native Flow)
+  // ==========================================================
+  const handleGoogleLogin = async () => {
+    try {
+      setLoading(true);
+      await GoogleSignin.hasPlayServices();
+
+      const response = await GoogleSignin.signIn();
+
+      // 👈 🔥 ፍታሕ: ን ሓዱሽ ቨርሽን (v13+) ቀያሕቲ ንምጥፋእ (Check Success)
+      if (response.type !== "success") {
+        console.log("Sign in cancelled");
+        setLoading(false);
+        return;
+      }
+
+      // እቲ ሓበሬታ ሕጂ ኣብ ውሽጢ 'data' እዩ ዘሎ
+      const user = response.data.user;
+      console.log("1. Native Google User Info:", user.email);
+
+      // ናብ ባክ-ኤንድ ንሰዶ
+      const serverRes = await fetch(`${API_BASE_URL}/api/users/google-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          name: user.name,
+          profilePic: user.photo,
+          googleId: user.id,
+        }),
+      });
+
+      const data = await serverRes.json();
+      if (serverRes.ok) {
+        await AsyncStorage.setItem("meydaToken", data.token);
+        await AsyncStorage.setItem(
+          "meydaUser",
+          JSON.stringify(data.user || data),
+        );
+        console.log("2. Success! Navigating to Home...");
+        router.replace("/(tabs)/home");
+      } else {
+        Alert.alert("ጌጋ", "ባክ-ኤንድ ኣይተቐበሎን");
+      }
+    } catch (error: any) {
+      console.error("Google Auth Error:", error);
+      Alert.alert("ጸገም", "ምስ ጎግል ክራኸብ ኣይከኣለን። ኮኔክሽንኩም ኣረጋግጹ።");
+    } finally {
+      setLoading(false);
+    }
+  };
   // ==========================================================
   // 🚀 ምዕራፍ 3: ንቡር ሎግ-ኢን
   // ==========================================================
@@ -158,23 +133,14 @@ export default function AuthScreen() {
           JSON.stringify(data.user || data),
         );
         router.replace("/(tabs)/home");
-      } else
+      } else {
         Alert.alert("ሎግ-ኢን ኣይተኻእለን", data.message || "ፓስዋርድ ወይ ኢሜይል ጌጋ እዩ።");
+      }
     } catch (err) {
       Alert.alert("ጸገም", "ምስ ሰርቨር ክራኸብ ኣይከኣለን።");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSignup = async () => {
-    /* ... existing code ... */
-  };
-  const handleRequestOtp = async () => {
-    /* ... existing code ... */
-  };
-  const handleVerifyOtp = async () => {
-    /* ... existing code ... */
   };
 
   // ==========================================================
@@ -238,10 +204,9 @@ export default function AuthScreen() {
               <View style={styles.formContainer}>
                 <TouchableOpacity
                   style={styles.googleBtn}
-                  // 👈 🔥 ማጂክ 3: useProxy ተደምሲሱ ኣሎ
-                  // @ts-ignore
-                  onPress={() => promptAsync()}
-                  disabled={!request || loading}
+                  // 👈 🔥 ማጂክ 4: ነታ ኦሪጅናል ፈንክሽን ጸዊዕናያ ኣለና
+                  onPress={handleGoogleLogin}
+                  disabled={loading}
                 >
                   <View style={styles.googleIconContainer}>
                     <Image
@@ -261,7 +226,7 @@ export default function AuthScreen() {
                 </View>
 
                 <View style={styles.formGroup}>
-                  <Text style={styles.label}>Email or Phone (ኢሜይል ወይ ስልኪ)</Text>
+                  <Text style={styles.label}>Email or Phone</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="Enter Email or Phone"
@@ -279,7 +244,7 @@ export default function AuthScreen() {
                       marginBottom: 5,
                     }}
                   >
-                    <Text style={styles.label}>Password (ፓስዋርድ)</Text>
+                    <Text style={styles.label}>Password</Text>
                     <TouchableOpacity
                       onPress={() => {
                         setForgotIdentifier(loginId);
@@ -312,17 +277,15 @@ export default function AuthScreen() {
               </View>
             )}
 
-            {/* Signup Tab */}
             {activeTab === "signup" && (
               <View style={styles.formContainer}>
                 {showSignupMethod ? (
                   <View>
                     <TouchableOpacity
                       style={styles.googleBtn}
-                      // 👈 🔥 ማጂክ 4: useProxy ተደምሲሱ ኣሎ
-                      // @ts-ignore
-                      onPress={() => promptAsync()}
-                      disabled={!request || loading}
+                      // 👈 🔥 ማጂክ 4: ነታ ኦሪጅናል ፈንክሽን ጸዊዕናያ ኣለና
+                      onPress={handleGoogleLogin}
+                      disabled={loading}
                     >
                       <View style={styles.googleIconContainer}>
                         <Image
@@ -348,15 +311,13 @@ export default function AuthScreen() {
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <View>{/* ... (Your existing phone signup inputs) */}</View>
+                  <View>{/* ... Phone signup form ... */}</View>
                 )}
               </View>
             )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* ... (Your existing Forgot Password Modal) */}
     </SafeAreaView>
   );
 }
@@ -379,12 +340,7 @@ const styles = StyleSheet.create({
     padding: 30,
     borderRadius: 16,
     elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
   },
-
   brandLogo: {
     flexDirection: "row",
     justifyContent: "center",
@@ -398,7 +354,6 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     letterSpacing: 1,
   },
-
   tabsWrapper: {
     flexDirection: "row",
     backgroundColor: "#f0f2f5",
@@ -420,9 +375,7 @@ const styles = StyleSheet.create({
   tabBtn: { flex: 1, paddingVertical: 12, alignItems: "center", zIndex: 1 },
   tabText: { fontSize: 15, fontWeight: "bold", color: "#888" },
   tabTextActive: { color: "#fff" },
-
   formContainer: { width: "100%" },
-
   googleBtn: {
     flexDirection: "row",
     backgroundColor: "#fff",
@@ -433,9 +386,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 15,
     elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
   },
   googleIconContainer: { backgroundColor: "#fff", padding: 8, borderRadius: 6 },
   googleIcon: { width: 24, height: 24 },
@@ -447,7 +397,6 @@ const styles = StyleSheet.create({
     color: "#555",
     marginRight: 40,
   },
-
   phoneAuthBtn: {
     flexDirection: "row",
     backgroundColor: "#2ecc71",
@@ -464,7 +413,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     marginLeft: 10,
   },
-
   divider: { flexDirection: "row", alignItems: "center", marginVertical: 20 },
   line: { flex: 1, height: 1, backgroundColor: "#eee" },
   dividerText: {
@@ -473,7 +421,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 12,
   },
-
   formGroup: { marginBottom: 15 },
   label: { fontSize: 13, color: "#666", marginBottom: 6, fontWeight: "bold" },
   input: {
@@ -486,7 +433,6 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   forgotText: { color: "#029eff", fontSize: 12, fontWeight: "bold" },
-
   submitBtn: {
     backgroundColor: "#029eff",
     padding: 15,
