@@ -11,6 +11,7 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Linking, // 💡 ሓዱሽ ማጂክ: ናብ ናይ ባንኪ ዌብሳይት መውሰዲት ቱል
   Modal,
   Platform,
   SafeAreaView,
@@ -205,23 +206,77 @@ export default function SellScreen() {
     setShowPaymentModal(true);
   };
 
-  const confirmPayment = (method: string) => {
+  // ==========================================================
+  // 🚀 ሓዱሽ ማጂክ: ናይ ሓቂ ክፍሊት (REAL PAYMENT FLOW)
+  // ==========================================================
+  const confirmPayment = async (method: string) => {
     if (selectedPkgPrice === 0) {
       Alert.alert("መጠንቀቕታ", "ፓኬጅ ምረጹ!");
       return;
     }
-    Alert.alert("ዕውት", `✅ ብ ${method} ዝተፈጸመ ክፍሊት ተቐቢልና ኣለና!`);
-    setShowPaymentModal(false);
 
+    // 🚀 ነቲ ዝመረጾ ፓኬጅ ናብቲ ሰርቨር ዝፈልጦ ቋንቋ (String) ንቕይሮ
+    let pkgTypeStr = "1_month";
     if (paymentType === "regular") {
-      setHasActiveSubscription(true);
-      Alert.alert("እንቋዕ ሓጎሰኩም!", "ድኳንኩም ብዓወት ተኸፊቱ ኣሎ። ሕጂ ንብረትኩም ብነጻ ዝርግሑ!");
-    } else if (paymentType === "advert_pro") {
-      setIsPro(true);
-      setAdType("advert");
+      if (selectedPkgPrice === 100) pkgTypeStr = "1_week";
+      else if (selectedPkgPrice === 300) pkgTypeStr = "1_month";
+      else if (selectedPkgPrice === 800) pkgTypeStr = "3_months";
+      else if (selectedPkgPrice === 1500) pkgTypeStr = "6_months";
+      else if (selectedPkgPrice === 2500) pkgTypeStr = "1_year";
     } else {
-      setIsPro(true);
-      setAdType("market");
+      if (selectedPkgPrice === 3000) pkgTypeStr = "1_month";
+      else if (selectedPkgPrice === 8000) pkgTypeStr = "3_months";
+      else pkgTypeStr = "1_week"; // ንመደበኛ Pro
+    }
+
+    try {
+      setIsSubmitting(true); // ሎዲንግ ንምጅማር
+      const myId = user?._id || user?.id || "";
+
+      // 🚀 1. ናብ ሰርቨርካ ትእዛዝ ክፍሊት ይሰድድ
+      const response = await fetch(`${API_BASE_URL}/api/payment/init`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: myId,
+          email: user?.email || "user@meydamarket.com",
+          name: user?.name || "Meyda User",
+          amount: selectedPkgPrice,
+          packageType: pkgTypeStr,
+        }),
+      });
+
+      const data = await response.json();
+      setIsSubmitting(false);
+
+      if (response.ok && data.paymentUrl) {
+        setShowPaymentModal(false);
+
+        // 🚀 2. ብቐጥታ ናብ ናይ ባንኪ/Chapa መኽፈሊ ሊንክ ይወስዶ!
+        Linking.openURL(data.paymentUrl);
+
+        Alert.alert(
+          "ክፍሊት ይጅምር ኣሎ...",
+          "ናብ ናይ ባንኪ ፔጅ ንወስደኩም ኣለና። ክፍሊትኩም ምስ ወዳእኩም ናብ ኣፕሊኬሽን ተመለሱ።",
+        );
+
+        // 💡 3. ክፍሊት ብትኽክል ከምዝተፈጸመ ጌርና ንግዚኡ ነቲ UI (ድኳን) ንኸፍተሉ (Optimistic Update)
+        // እቲ ናይ ሓቂ ምዝገባ ኣብ ዳታቤዝ በቲ Webhook (ሰርቨር) እዩ ዝግበር
+        if (paymentType === "regular") {
+          setHasActiveSubscription(true);
+        } else if (paymentType === "advert_pro") {
+          setIsPro(true);
+          setAdType("advert");
+        } else {
+          setIsPro(true);
+          setAdType("market");
+        }
+      } else {
+        Alert.alert("ጌጋ", "ምስ ባንኪ ክንራኸብ ኣይከኣልናን። ደጊምኩም ፈትኑ።");
+      }
+    } catch (error) {
+      setIsSubmitting(false);
+      Alert.alert("ጌጋ", "ኢንተርነትኩም ኣረጋግጹ።");
     }
   };
 
