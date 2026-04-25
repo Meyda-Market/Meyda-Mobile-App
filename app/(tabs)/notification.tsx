@@ -5,15 +5,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useContext, useState } from "react";
 import {
-  Platform,
   RefreshControl,
   SafeAreaView,
   SectionList,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
 import { ThemeContext } from "../../context/ThemeContext";
@@ -517,8 +515,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 15,
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight || 40 : 15,
+    padding: 4,
   },
   headerLeft: { flexDirection: "row", alignItems: "center" },
   headerTitle: { fontSize: 24, fontWeight: "900", color: "#1a1a1a" },

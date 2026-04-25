@@ -909,7 +909,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 15,
+    padding: 1,
   },
   headerTitle: { fontSize: 20, fontWeight: "bold", color: "#029eff" },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 10 },
@@ -947,7 +947,7 @@ const styles = StyleSheet.create({
 
   newsCard: {
     backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: 8,
     marginHorizontal: 15,
     marginTop: 15,
     elevation: 2,

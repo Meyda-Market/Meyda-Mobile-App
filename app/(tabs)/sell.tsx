@@ -1411,7 +1411,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#fff",
     padding: 15,
-    paddingTop: Platform.OS === "android" ? 40 : 15,
+    paddingTop: Platform.OS === "android" ? 20 : 10,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",

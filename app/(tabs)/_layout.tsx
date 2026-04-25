@@ -48,7 +48,7 @@ export default function TabLayout() {
             backgroundColor: isDarkMode ? "#1E1E1E" : "#ffffff",
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
-            height: 60, // 👈 ብጣዕሚ ኣሕጺርናዮ (ቦታ ከይወስድ)
+            height: 82, // 👈 ብጣዕሚ ኣሕጺርናዮ (ቦታ ከይወስድ)
             borderTopWidth: 0,
             elevation: 15,
             shadowColor: "#000",
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     // 💡 ማጂክ 5: ካብቲ ሓጺር ባር ንላዕሊ ቁሩብ ፍንትት ክትብል
-    top: -20,
+    top: -18,
     borderWidth: 5,
     elevation: 8,
     shadowColor: "#029eff",

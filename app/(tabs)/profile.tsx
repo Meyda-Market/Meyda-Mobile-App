@@ -14,7 +14,6 @@ import {
   Modal,
   Platform,
   SafeAreaView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -1387,7 +1386,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   headerContainer: { backgroundColor: "#fff" },
   topBar: {
@@ -1395,7 +1393,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 15,
-    paddingVertical: 12,
+    paddingVertical: 8,
     backgroundColor: "#029eff",
   },
   topLeft: { flexDirection: "row", alignItems: "center" },

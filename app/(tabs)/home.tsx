@@ -25,7 +25,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
 import { ThemeContext } from "../../context/ThemeContext";
@@ -817,7 +817,7 @@ const styles = StyleSheet.create({
   animatedHeaderContainer: {
     position: "absolute",
     // 💡 ማጂክ 4: StatusBar.currentHeight ደምሲሰዮ ኣለኹ (ሕጂ 0 እዩ)
-    top: 0,
+    top: 5,
     left: 0,
     right: 0,
     zIndex: 100,
