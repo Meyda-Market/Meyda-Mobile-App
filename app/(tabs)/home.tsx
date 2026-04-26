@@ -27,8 +27,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+// 👈 💡 ማጂክ 1: ንመኽዘን ናይ ሞባይል ጸዊዕናዮ ኣለና
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthContext } from "../../context/AuthContext";
 import { ThemeContext } from "../../context/ThemeContext";
+//
 const { width: screenWidth } = Dimensions.get("window");
 const API_BASE_URL = "https://meyda-app.onrender.com";
 const HEADER_HEIGHT = 50;
@@ -94,6 +97,11 @@ const ProCarousel = ({ proProducts, router }: any) => {
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => {
+          // 👈 💡 ማጂክ መጻወዲት 1: ሎግ-ኢን ዘይገበረ ንብረት ክኸፍት ኣይክእልን
+          if (!user) {
+            router.push("/modal" as any);
+            return;
+          }
           const myId = user?._id || user?.id;
           // እዚ ኣቕሓ ናተይ ድዩ ወይስ ናይ ካልእ? ኢሉ የረጋግጽ
           const isMyProduct =
@@ -240,13 +248,58 @@ export default function HomeScreen() {
   });
 
   // ==========================================================
-  // 🚀 ምዕራፍ 5: ዳታ ካብ ሰርቨር ምጽዋዕ (Fetch API)
+  // 🚀 ምዕራፍ 5: ዳታ ካብ ሰርቨር ምጽዋዕ & ሎኬሽን (Smart Load)
   // ==========================================================
   useFocusEffect(
     useCallback(() => {
-      fetchProducts();
+      const loadLocationAndFetch = async () => {
+        try {
+          // 👈 💡 ማጂክ: ሞባይል ክትክፈት ከላ ካብ መኽዘን ተንብብ
+          const savedRegion = await AsyncStorage.getItem("meydaRegion");
+          const savedCity = await AsyncStorage.getItem("meydaCity");
+
+          if (savedCity && savedRegion) {
+            setLocationFilter(`${savedRegion}, ${savedCity}`);
+            setLocationDisplayName(savedCity);
+          } else if (savedRegion) {
+            setLocationFilter(savedRegion);
+            setLocationDisplayName(savedRegion);
+          }
+        } catch (e) {
+          console.log("Error loading location:", e);
+        }
+        fetchProducts(); // ሎኬሽን ምስ ኣንበበት ኣቕሑት ተምጽእ
+      };
+      loadLocationAndFetch();
     }, []),
   );
+
+  // 👈 💡 ማጂክ: ሓዱሽ ክልል/ከተማ ምስ ዝምረጽ ኣብ ሞባይል ንዕቅቦ (Save Helper)
+  const saveLocationSelect = async (
+    region: string | null,
+    city: string | null,
+  ) => {
+    try {
+      if (!region) {
+        await AsyncStorage.removeItem("meydaRegion");
+        await AsyncStorage.removeItem("meydaCity");
+        setLocationFilter("all");
+        setLocationDisplayName("Region");
+      } else if (region && !city) {
+        await AsyncStorage.setItem("meydaRegion", region);
+        await AsyncStorage.removeItem("meydaCity");
+        setLocationFilter(region);
+        setLocationDisplayName(region);
+      } else if (region && city) {
+        await AsyncStorage.setItem("meydaRegion", region);
+        await AsyncStorage.setItem("meydaCity", city);
+        setLocationFilter(`${region}, ${city}`);
+        setLocationDisplayName(city);
+      }
+    } catch (e) {}
+    setShowRegionModal(false);
+    setActiveRegionStep(null);
+  };
 
   const fetchProducts = async () => {
     try {
@@ -432,6 +485,11 @@ export default function HomeScreen() {
         ]}
         activeOpacity={0.8}
         onPress={() => {
+          // 👈 💡 ማጂክ መጻወዲት 2: ኖርማል ንብረት ክኸፍት ከሎ'ውን ፖፕ-ኣፕ ይመጽእ
+          if (!user) {
+            router.push("/modal" as any);
+            return;
+          }
           const myId = user?._id || user?.id;
           const isMyProduct =
             String(item.sellerId || item.vendorId || item.userId) ===
@@ -691,11 +749,8 @@ export default function HomeScreen() {
                     styles.listItem,
                     { borderColor: isDarkMode ? "#333" : "#f0f0f0" },
                   ]}
-                  onPress={() => {
-                    setLocationFilter("all");
-                    setLocationDisplayName("Region");
-                    setShowRegionModal(false);
-                  }}
+                  // 👈 💡 ማጂክ: ን "All Regions" ክመርጽ ከሎ መኽዘን ባዶ ይኸውን
+                  onPress={() => saveLocationSelect(null, null)}
                 >
                   <Text
                     style={[
@@ -715,12 +770,8 @@ export default function HomeScreen() {
                       styles.listItem,
                       { borderColor: isDarkMode ? "#333" : "#f0f0f0" },
                     ]}
-                    onPress={() => {
-                      setLocationFilter(activeRegionStep);
-                      setLocationDisplayName(activeRegionStep);
-                      setShowRegionModal(false);
-                      setActiveRegionStep(null);
-                    }}
+                    // 👈 💡 ማጂክ: "ሙሉእ ክልል" ክመርጽ ከሎ
+                    onPress={() => saveLocationSelect(activeRegionStep, null)}
                   >
                     <Text
                       style={[
@@ -740,12 +791,8 @@ export default function HomeScreen() {
                           styles.listItem,
                           { borderColor: isDarkMode ? "#333" : "#f0f0f0" },
                         ]}
-                        onPress={() => {
-                          setLocationFilter(`${activeRegionStep}, ${c}`);
-                          setLocationDisplayName(c);
-                          setShowRegionModal(false);
-                          setActiveRegionStep(null);
-                        }}
+                        // 👈 💡 ማጂክ: "ፍልይቲ ከተማ" ክመርጽ ከሎ
+                        onPress={() => saveLocationSelect(activeRegionStep, c)}
                       >
                         <Text
                           style={[
@@ -769,11 +816,7 @@ export default function HomeScreen() {
                     onPress={() => {
                       if (loc.cities.length > 0)
                         setActiveRegionStep(loc.region);
-                      else {
-                        setLocationFilter(loc.region);
-                        setLocationDisplayName(loc.region);
-                        setShowRegionModal(false);
-                      }
+                      else saveLocationSelect(loc.region, null); // ከተማ ዘይብሉ ክልል እንተኾይኑ
                     }}
                   >
                     <Text

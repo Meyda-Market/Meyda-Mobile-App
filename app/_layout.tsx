@@ -11,8 +11,10 @@ import { useColorScheme } from "react-native";
 // 💡 1. ነታ ዝሰራሕናያ ሓንጎል ነምጽኣ
 import { AuthProvider } from "../context/AuthContext";
 import { ThemeProvider as MeydaThemeProvider } from "../context/ThemeContext";
+
+// 👈 💡 ማጂክ 1: ኣፕሊኬሽን ክትክፈት ከላ መጀመርያ ናብ "welcome" ክትከይድ ኣዚዝናያ ኣለና!
 export const unstable_settings = {
-  initialRouteName: "index",
+  initialRouteName: "welcome",
 };
 
 export default function RootLayout() {
@@ -25,6 +27,9 @@ export default function RootLayout() {
         >
           <StatusBar style="light" backgroundColor="#000000" />
           <Stack>
+            {/* 👈 💡 ማጂክ 2: እታ ሓዳስ ናይ ክልል መምረጺት ማዕጾ ተፈጢራ ኣላ */}
+            <Stack.Screen name="welcome" options={{ headerShown: false }} />
+
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="dashboard" options={{ headerShown: false }} />

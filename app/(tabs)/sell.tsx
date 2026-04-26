@@ -313,7 +313,7 @@ export default function SellScreen() {
   const submitAd = async () => {
     if (!user) {
       Alert.alert("መጠንቀቕታ", "መጀመርታ ሎግ-ኢን ግበሩ!");
-      router.push("/" as any);
+      router.push("/modal" as any); // 👈 💡 ማጂክ: ናብታ ሓዳስ ፖፕ-ኣፕ (Modal) ይወስዶ
       return;
     }
 
@@ -452,6 +452,75 @@ export default function SellScreen() {
   // ==========================================================
   // 🚀 ምዕራፍ 7: ዲዛይን ጠቕላላ ፔጅ (Main Render)
   // ==========================================================
+
+  // 👈 💡 ማጂክ መጻወዲት (The Interceptor): ሎግ-ኢን ዘይገበረ ሰብ እንተመጺኡ እዚኣ ትቕበሎ
+  if (!user) {
+    return (
+      <SafeAreaView
+        style={[
+          styles.container,
+          {
+            backgroundColor: isDarkMode ? "#121212" : "#f4f6f9",
+            justifyContent: "center",
+            alignItems: "center",
+          },
+        ]}
+      >
+        <View
+          style={{
+            width: 120,
+            height: 120,
+            borderRadius: 60,
+            backgroundColor: isDarkMode ? "#2A2A2A" : "#e6f4fe",
+            justifyContent: "center",
+            alignItems: "center",
+            marginBottom: 20,
+          }}
+        >
+          <Ionicons name="lock-closed" size={60} color="#029eff" />
+        </View>
+        <Text
+          style={{
+            fontSize: 24,
+            fontWeight: "900",
+            color: isDarkMode ? "#FFF" : "#333",
+          }}
+        >
+          ማዕጾ ተዓጽዩ ኣሎ!
+        </Text>
+        <Text
+          style={{
+            fontSize: 15,
+            color: isDarkMode ? "#AAA" : "#666",
+            textAlign: "center",
+            marginHorizontal: 40,
+            marginTop: 15,
+            lineHeight: 24,
+          }}
+        >
+          ንብረትኩም ንምሻጥ ወይ ማስታወቂያ ንምዝርጋሕ፡ በጃኹም ናብ ኣካውንትኩም እተው ወይ ሓዱሽ ተመዝገቡ።
+        </Text>
+        <TouchableOpacity
+          style={[
+            styles.submitBtn,
+            {
+              marginTop: 40,
+              paddingHorizontal: 40,
+              paddingVertical: 15,
+              borderRadius: 30,
+              width: "70%",
+            },
+          ]}
+          onPress={() => router.push("/modal" as any)}
+        >
+          <Text style={[styles.submitBtnText, { fontSize: 18 }]}>
+            ሎግ-ኢን / ተመዝገብ
+          </Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView
       style={[

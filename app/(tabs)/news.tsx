@@ -176,7 +176,11 @@ export default function NewsScreen() {
   };
 
   const toggleLike = async (newsId: string) => {
-    if (!user) return Alert.alert("መዘኻኸሪ", "መጀመርታ ሎግ-ኢን ግበሩ!");
+    // 👈 💡 ማጂክ 1: ሎግ-ኢን ዘይገበረ ላይክ ክገብር እንተደልዩ ማዕጾ (Modal) ይመጽእ
+    if (!user) {
+      router.push("/modal" as any);
+      return;
+    }
     const myId = user._id || user.id;
 
     setAllNews((prev) =>
@@ -210,7 +214,12 @@ export default function NewsScreen() {
   };
 
   const submitComment = async (newsId: string) => {
-    if (!commentInput.trim() || !user) return;
+    if (!commentInput.trim()) return;
+    // 👈 💡 ማጂክ 2: ሎግ-ኢን ዘይገበረ ሰብ ርእይቶ ክጽሕፍ እንተደልዩ ፖፕ-ኣፕ ይመጽእ
+    if (!user) {
+      router.push("/modal" as any);
+      return;
+    }
     try {
       const token = await AsyncStorage.getItem("meydaToken");
       const res = await fetch(`${API_BASE_URL}/api/news/${newsId}/comment`, {
@@ -278,7 +287,14 @@ export default function NewsScreen() {
             {canPost && (
               <TouchableOpacity
                 style={styles.createBtn}
-                onPress={() => setShowCreateModal(true)}
+                onPress={() => {
+                  // 👈 💡 ማጂክ 3: ዜና ክልጥፍ ምስ ደለየ ፖፕ-ኣፕ ትቕበሎ
+                  if (!user) {
+                    router.push("/modal" as any);
+                    return;
+                  }
+                  setShowCreateModal(true);
+                }}
               >
                 <FontAwesome5 name="pen" size={12} color="#fff" />
                 <Text style={styles.createBtnText}> ሓዱሽ ፖስት</Text>

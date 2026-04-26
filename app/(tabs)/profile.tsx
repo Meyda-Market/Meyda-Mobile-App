@@ -4,6 +4,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
+
 import React, { useCallback, useContext, useState } from "react";
 import {
   ActivityIndicator,
@@ -774,6 +775,72 @@ export default function ProfileScreen() {
   // ==========================================================
   // 🚀 ምዕራፍ 6: ጠቕላላ ስክሪን (Main Render)
   // ==========================================================
+  // 👈 💡 ማጂክ መጻወዲት ን Profile: ሎግ-ኢን ዘይገበረ ሰብ እንተመጺኡ እዚኣ ትቕበሎ
+  if (!user) {
+    return (
+      <SafeAreaView
+        style={[
+          styles.container,
+          {
+            backgroundColor: isDarkMode ? "#121212" : "#f4f6f9",
+            justifyContent: "center",
+            alignItems: "center",
+          },
+        ]}
+      >
+        <View
+          style={{
+            width: 120,
+            height: 120,
+            borderRadius: 60,
+            backgroundColor: isDarkMode ? "#2A2A2A" : "#e6f4fe",
+            justifyContent: "center",
+            alignItems: "center",
+            marginBottom: 20,
+          }}
+        >
+          <Ionicons name="person-circle-outline" size={70} color="#029eff" />
+        </View>
+        <Text
+          style={{
+            fontSize: 24,
+            fontWeight: "900",
+            color: isDarkMode ? "#FFF" : "#333",
+          }}
+        >
+          ፕሮፋይል የለን!
+        </Text>
+        <Text
+          style={{
+            fontSize: 15,
+            color: isDarkMode ? "#AAA" : "#666",
+            textAlign: "center",
+            marginHorizontal: 40,
+            marginTop: 15,
+            lineHeight: 24,
+          }}
+        >
+          ናይ ገዛእ ርእስኹም ፕሮፋይል ንምርኣይን ንምቁጽጻርን፡ በጃኹም ሎግ-ኢን ግበሩ።
+        </Text>
+        <TouchableOpacity
+          style={{
+            backgroundColor: "#029eff",
+            marginTop: 40,
+            paddingHorizontal: 40,
+            paddingVertical: 15,
+            borderRadius: 30,
+            width: "70%",
+            alignItems: "center",
+          }}
+          onPress={() => router.push("/modal" as any)}
+        >
+          <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 18 }}>
+            ሎግ-ኢን / ተመዝገብ
+          </Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
   return (
     <SafeAreaView
       style={[
