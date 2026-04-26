@@ -7,6 +7,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -64,6 +65,22 @@ export default function ChatScreen() {
       setInputText(prefillMsg);
     }
   }, [prefillMsg]);
+
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", () =>
+      setIsKeyboardOpen(true),
+    );
+    const hideSub = Keyboard.addListener("keyboardDidHide", () =>
+      setIsKeyboardOpen(false),
+    );
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // 💡 ሓዱሽ ማጂክ: ትኽክለኛ ስምን ስእልን ካብ ዳታቤዝ ንስሕብ!
   const fetchPartnerProfile = async () => {
@@ -364,9 +381,9 @@ export default function ChatScreen() {
       )}
 
       <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "android" ? 20 : 90}
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "padding"}
-        keyboardVerticalOffset={Platform.OS === "android" ? 25 : 0}
       >
         <FlatList
           ref={flatListRef}
@@ -401,7 +418,13 @@ export default function ChatScreen() {
         <View
           style={[
             styles.inputContainer,
-            { backgroundColor: isDarkMode ? "#1E1E1E" : "#fff" },
+            {
+              paddingBottom: isKeyboardOpen
+                ? 10
+                : Platform.OS === "android"
+                  ? 52
+                  : 35,
+            },
           ]}
         >
           <TextInput
@@ -532,9 +555,9 @@ const styles = StyleSheet.create({
   myMsgCard: { backgroundColor: "rgba(255,255,255,0.2)" },
   theirMsgCard: { backgroundColor: "#f0f2f5" },
   msgProductImg: {
-    width: 40,
-    height: 40,
-    borderRadius: 5,
+    width: 80,
+    height: 80,
+    borderRadius: 1,
     marginRight: 10,
     resizeMode: "cover",
   },
@@ -546,12 +569,12 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: "center", marginTop: 50 },
   emptyText: { color: "#888", marginTop: 10, fontSize: 15 },
 
+  // ነታ ታሕቲ ዘላ መልእኸቲ መፅሓፊት
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
     paddingTop: 10,
-    paddingBottom: 25,
     backgroundColor: "#fff",
     elevation: 10,
   },

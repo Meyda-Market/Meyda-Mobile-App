@@ -23,9 +23,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // 👈 🔥 ማጂክ 1: ነቲ ኦሪጅናል ናይ ጎግል ቱል ኣእቲናዮ ኣለና
-import {
-  GoogleSignin
-} from "@react-native-google-signin/google-signin";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 LogBox.ignoreLogs(["Unable to activate keep awake"]);
 
@@ -64,8 +62,18 @@ export default function AuthScreen() {
   // 🚀 ምዕራፍ 2: ኦሪጅናል ጎግል ሎግ-ኢን (Native Flow)
   // ==========================================================
   const handleGoogleLogin = async () => {
+    // 👈 💡 ማጂክ: ን Web (ኮምፒተር) ጥራሕ እትኸውን መከላኸሊት
+    if (Platform.OS === "web") {
+      Alert.alert(
+        "Web Login",
+        "ንግዚኡ ኣብ ኮምፒተር (Web) Google Login ኣይሰርሕን እዩ፣ በጃኻ ብሞባይል ቴስት ግበሮ።",
+      );
+      return;
+    }
+
     try {
       setLoading(true);
+      // 👈 ሕጂ እቲ ኣብ መስመር 69 ዝነበረ "await GoogleSignin.hasPlayServices();" እናበለ ይቕጽል...
       await GoogleSignin.hasPlayServices();
 
       const response = await GoogleSignin.signIn();
@@ -115,29 +123,40 @@ export default function AuthScreen() {
   // ==========================================================
   // 🚀 ምዕራፍ 3: ንቡር ሎግ-ኢን
   // ==========================================================
+  // 👈 💡 ማጂክ: እዛ ፋንክሽን እያ ነቲ 400 Error እተዐርዮ
   const handleLogin = async () => {
-    if (!loginId || !loginPassword)
-      return Alert.alert("ጌጋ", "በጃኹም ኢሜይል/ስልኪን ፓስዋርድን ምልእዎ!");
-    setLoading(true);
+    // 👈 💡 ማጂክ: ሕጂ ነተን ናትካ ኦሪጂናል ስማት ንጥቀም ኣለና
+    if (!loginId || !loginPassword) {
+      Alert.alert("ጌጋ", "በጃኻ ኢሜልን ፓስዎርድን ምልእ።");
+      return;
+    }
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/login`, {
+      setLoading(true);
+      const res = await fetch(`${API_BASE_URL}/api/users/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginId, password: loginPassword }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          // ⚠️ ማጂክ: ሰርቨር 'email' ይጽበ፡ ንሕና ግና ነታ ጽሑፍ ዘለዋ 'loginId' ንሰደሉ
+          email: loginId.trim().toLowerCase(),
+          password: loginPassword,
+        }),
       });
-      const data = await response.json();
-      if (response.ok) {
+
+      const data = await res.json();
+
+      if (res.ok) {
         await AsyncStorage.setItem("meydaToken", data.token);
-        await AsyncStorage.setItem(
-          "meydaUser",
-          JSON.stringify(data.user || data),
-        );
+        await AsyncStorage.setItem("meydaUser", JSON.stringify(data.user));
         router.replace("/(tabs)/home");
       } else {
-        Alert.alert("ሎግ-ኢን ኣይተኻእለን", data.message || "ፓስዋርድ ወይ ኢሜይል ጌጋ እዩ።");
+        Alert.alert("ጌጋ", data.message || "ኢሜል ወይ ፓስዎርድ ተጋግዮም!");
       }
-    } catch (err) {
-      Alert.alert("ጸገም", "ምስ ሰርቨር ክራኸብ ኣይከኣለን።");
+    } catch (error) {
+      console.log("Login Network Error:", error);
+      Alert.alert("ጌጋ ኔትወርክ", "ምስ ሰርቨር ምርኻብ ኣይተኻእለን።");
     } finally {
       setLoading(false);
     }

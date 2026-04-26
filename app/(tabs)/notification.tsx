@@ -3,7 +3,7 @@
 // ==========================================================
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useContext, useState } from "react";
+import React, { useCallback, useContext, useRef, useState } from "react";
 import {
   RefreshControl,
   SafeAreaView,
@@ -11,7 +11,8 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  Vibration,
+  View,
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
 import { ThemeContext } from "../../context/ThemeContext";
@@ -32,6 +33,9 @@ export default function NotificationScreen() {
 
   const [currentFilter, setCurrentFilter] = useState("all");
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  // 👈 💡 ማጂክ: ሓዱሽ ኖቲፊኬሽን ንምፍላይ ዝሕግዝ ሓንጎል
+  const isSoundEnabledRef = useRef(true);
+  const prevUnreadCount = useRef(0);
 
   // ==========================================================
   // 🚀 ምዕራፍ 3: ህያው ማጂክ (Fetch Dynamic Data)
@@ -43,19 +47,32 @@ export default function NotificationScreen() {
     }, [user]),
   );
 
+  // 👈 💡 ማጂክ: ድምጺ/ቪብሬሽን ዝገብር ፋንክሽን
+  const playNotificationSound = () => {
+    try {
+      Vibration.vibrate([0, 200, 100, 200]); // ክልተ ግዜ ይጭርርቕ
+    } catch (error) {
+      console.log("Vibration error", error);
+    }
+  };
+
   const fetchNotifications = async () => {
     if (!user) return;
     try {
       const myId = user._id || user.id;
 
-      // 1️⃣ ካብ Message ዳታቤዝ (ላይክ: ኮሜንት: ሜሰጅ) ንስሕብ
+      // 1️⃣ ካብ Message ዳታቤዝ ንስሕብ
       const msgRes = await fetch(`${API_BASE_URL}/api/messages/${myId}`);
       let notifsData = [];
       if (msgRes.ok) {
-        notifsData = await msgRes.json();
+        const rawData = await msgRes.json();
+        // 👈 💡 ማጂክ 1: ናይ ባዕልኻ ኖቲፊኬሽን የጥፍእ (ካብ ካልእ ሰብ ዝመጸ ጥራሕ የሕልፍ)
+        notifsData = rawData.filter(
+          (n: any) => String(n.senderId) !== String(myId),
+        );
       }
 
-      // 2️⃣ ካብ News ዳታቤዝ (ወግዓውያን ሓበሬታታት) ንስሕብ
+      // 2️⃣ ካብ News ዳታቤዝ ንስሕብ
       const newsRes = await fetch(`${API_BASE_URL}/api/news`);
       if (newsRes.ok) {
         const allNews = await newsRes.json();
@@ -63,27 +80,36 @@ export default function NotificationScreen() {
           (n: any) => n.category === "ወግዓዊ" || n.isPinned,
         );
 
-        // ንዜናታት ናብ ፎርማት ናይ ኖቲፊኬሽን ንቕይሮም
         const newsNotifs = officialNews.map((n: any) => ({
           _id: n._id,
           id: n._id,
           type: "system",
-          isRead: true, // ዜና ኩሉግዜ ዝተነበበ ኮይኑ እዩ ዝመጽእ
+          isRead: true,
           senderId: "admin",
           senderName: "Meyda",
           text: n.title || "ሓዱሽ ሓበሬታ ካብ Meyda",
           createdAt: n.createdAt,
           productId: null,
-          isNewsItem: true, // 💡 ማጂክ: ናብ ዜና ፔጅ ምእንቲ ክንመርሖ
+          isNewsItem: true,
         }));
         notifsData = [...notifsData, ...newsNotifs];
       }
 
-      // 3️⃣ ብግዜኦም (Date) ንሰርዓዮም (ሓደስቲ ኣብ ላዕሊ)
+      // 3️⃣ ብግዜኦም ንሰርዓዮም
       notifsData.sort(
         (a: any, b: any) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
+
+      // 👈 💡 ማጂክ 2: ሓዱሽ ዘይተነበበ ኖቲፊኬሽን ምስ ዝመጽእ ይጭርርቕ
+      const currentUnread = notifsData.filter((n: any) => !n.isRead).length;
+      if (
+        isSoundEnabledRef.current &&
+        currentUnread > prevUnreadCount.current
+      ) {
+        playNotificationSound();
+      }
+      prevUnreadCount.current = currentUnread;
 
       setAllNotifications(notifsData);
     } catch (error) {
@@ -93,7 +119,6 @@ export default function NotificationScreen() {
       setRefreshing(false);
     }
   };
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchNotifications();
@@ -235,12 +260,17 @@ export default function NotificationScreen() {
             <Ionicons name="checkmark-done" size={18} color="#029eff" />
             <Text style={styles.markReadText}> ኩሉ ኣንብብ</Text>
           </TouchableOpacity>
+
+          {/* 👈 💡 ማጂክ: መጥወቒት (Mute/Unmute) */}
           <TouchableOpacity
-            onPress={() => setIsSoundEnabled(!isSoundEnabled)}
+            onPress={() => {
+              setIsSoundEnabled(!isSoundEnabled);
+              isSoundEnabledRef.current = !isSoundEnabled;
+            }}
             style={{ marginLeft: 15 }}
           >
             <Ionicons
-              name={isSoundEnabled ? "volume-medium" : "volume-mute"}
+              name={isSoundEnabled ? "notifications" : "notifications-off"}
               size={22}
               color={isSoundEnabled ? "#029eff" : isDarkMode ? "#666" : "#ccc"}
             />

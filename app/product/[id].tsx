@@ -960,9 +960,9 @@ const styles = StyleSheet.create({
 
   floatingActionContainer: {
     position: "absolute",
-    bottom: Platform.OS === "ios" ? 35 : 30,
-    left: 20,
-    right: 20,
+    bottom: Platform.OS === "ios" ? 35 : 50,
+    left: 15,
+    right: 15,
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 15,

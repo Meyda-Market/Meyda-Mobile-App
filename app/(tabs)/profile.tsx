@@ -36,6 +36,8 @@ export default function ProfileScreen() {
   const [socialLinksVisible, setSocialLinksVisible] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [emailVisible, setEmailVisible] = useState(false);
+  // 👈 💡 ማጂክ 1: መኽዘን ናይ ተሪፉ ዘሎ መዓልታት
+  const [daysLeft, setDaysLeft] = useState<number | null>(null);
 
   // 💡 ሓዱሽ ማጂክ: ንናይ ባዕልኻ ኣቕሓ ምምሕዳር (Custom Modal States)
   const [manageModalVisible, setManageModalVisible] = useState(false);
@@ -99,6 +101,23 @@ export default function ProfileScreen() {
           setLocalBannerPic(
             freshUser.bannerPic ? getImageUrl(freshUser.bannerPic) : null,
           );
+          // 👈 💡 ማጂክ 2: መዓልታት ዝቖጽር ሓንጎል (ብልክዕ ምስ ዳታቤዝካ ዝሰማማዕ)
+          // ኣብ ዳታቤዝካ 'expireDate' እዩ ዝብል፣ 'packageType' ድማ ኣሎ
+          if (
+            freshUser.expireDate &&
+            freshUser.packageType !== "none" &&
+            freshUser.packageType !== "free"
+          ) {
+            const expiryDate = new Date(freshUser.expireDate).getTime();
+            const today = new Date().getTime();
+            const diffTime = expiryDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // ናብ መዓልቲ ንቕይሮ
+
+            // ተሪፉዎ እንተኾይኑ ነታ ቁጽሪ ይሕዛ፣ እንተወዲኡ ግና ዜሮ (null) ይገብራ
+            setDaysLeft(diffDays > 0 ? diffDays : null);
+          } else {
+            setDaysLeft(null); // ናጻ (Free) እንተኾይኑ ወይ ፓኬጅ እንተዘይብሉ (null) የጥፍኣዮ
+          }
         }
       } catch (err) {
         console.log("Error fetching fresh profile:", err);
@@ -253,7 +272,7 @@ export default function ProfileScreen() {
   const handleLogout = async () => {
     setSettingsVisible(false);
     await logout();
-    router.replace("/(auth)/login" as any);
+    router.replace("/" as any);
   };
 
   const handleDeleteAccount = () => {
@@ -498,13 +517,16 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.countdownBtn}
-          onPress={() => Alert.alert("ፓኬጅ", "14 መዓልታት ተሪፉካ ኣሎ!")}
-        >
-          <MaterialCommunityIcons name="timer-sand" size={16} color="#fff" />
-          <Text style={styles.countdownText}>14 መዓልቲ ተሪፉ</Text>
-        </TouchableOpacity>
+        {/* 👈 💡 ማጂክ 3: መዓልቲ እንተተሪፉ (daysLeft > 0) ጥራሕ እዛ በተን ትርአ! እንተዘየለ ትጠፍእ! */}
+        {daysLeft !== null && daysLeft > 0 && (
+          <TouchableOpacity
+            style={styles.countdownBtn}
+            onPress={() => Alert.alert("ፓኬጅ", `${daysLeft} መዓልታት ተሪፉካ ኣሎ!`)}
+          >
+            <MaterialCommunityIcons name="timer-sand" size={6} color="#fff" />
+            <Text style={styles.countdownText}>{daysLeft} መዓልቲ ተሪፉ</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.infoSection}>
@@ -1577,17 +1599,18 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: "center",
   },
+  // ነቲ ናይ ሴቲንግ ፖፕኣፕ ዲዛይን መስተኻኸሊ
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
+    justifyContent: "center", // 👈 💡 ማጂክ 1: ካብ "flex-end" ናብ "center" ቀይርናያ
+    alignItems: "center", // 👈 💡 ማጂክ 2: ብየማንን ጸጋምን ማእከል ክትከውን
   },
   modalContent: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: Platform.OS === "ios" ? 40 : 20,
+    width: "80%", // 👈 💡 ማጂክ 3: ምሉእ ስክሪን ከይትሽፍን 90% ጌርናያ
+    borderRadius: 10, // 👈 💡 ማጂክ 4: ነተን borderTopLeft/Right ዝነበራ ኣጥፊእና፣ 4ቲኡ ኩርናዕ ክጥምዘዝ ጌርናዮ
+    padding: 10,
   },
   modalDragHandler: {
     width: 40,

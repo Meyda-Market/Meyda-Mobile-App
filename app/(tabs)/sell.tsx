@@ -109,8 +109,11 @@ const conditionOptions = [
 export default function SellScreen() {
   const router = useRouter();
   const { user } = useContext(AuthContext);
-  // 💡 ማጂክ: ዳርክ ሞድ ሓንጎል ንጽውዕ (ብዘይ መጥወቒት)
   const { isDarkMode } = useContext(ThemeContext);
+
+  // 👈 💡 ማጂክ 1: እዚ ተጠቃሚ VIP (ኣድሚን ወይ ዋና) ድዩ? ዝምርምር ሓንጎል
+  const isAdminOrOwner =
+    user?.role === "admin" || user?.role === "owner" || user?.isAdmin;
 
   // ==========================================================
   // 🚀 ምዕራፍ 3: መኽዘን ኩነታት (State Management)
@@ -200,6 +203,30 @@ export default function SellScreen() {
   };
 
   const openPayment = (type: string) => {
+    // 👈 💡 ማጂክ: ኣድሚን ወይ ዋና እንተኾይኑ፡ ናብ ባንኪ ፖፕ-ኣፕ ከይከደ ብቐጥታ VIP ይኸፍተሉ!
+    if (isAdminOrOwner) {
+      setShowProMenu(false); // ነቲ ድሮፕዳውን ይዓጽዎ
+      if (type === "market_pro") {
+        setIsPro(true);
+        setAdType("market");
+        Alert.alert(
+          "🎉 VIP ኣድሚን",
+          "PRO Market (ኣብ ላዕሊ ዝስቀል) ብነጻ ተኸፊቱልኩም ኣሎ! ሕጂ ንብረትኩም መዝግቡ።",
+        );
+      } else if (type === "advert_pro") {
+        setIsPro(true);
+        setAdType("advert");
+        Alert.alert(
+          "🎉 VIP ኣድሚን",
+          "PRO Advert (መወዓውዒ) ብነጻ ተኸፊቱልኩም ኣሎ! ሕጂ ማስታወቂያኹም መዝግቡ።",
+        );
+      } else {
+        setHasActiveSubscription(true);
+      }
+      return; // ካብዚ ይምለስ (ናብ ናይ ክፍሊት ፖፕ-ኣፕ ፈጺሙ ኣይከይድን)
+    }
+
+    // ንኻልኦት ኖርማል ተጠቀምቲ (ክፍሊት ንዝሓትቱ) ናብ ናይ ክፍሊት ፖፕ-ኣፕ ይወስዶም
     setPaymentType(type);
     setSelectedPkgPrice(0);
     setShowProMenu(false);
@@ -215,7 +242,6 @@ export default function SellScreen() {
       return;
     }
 
-    // 🚀 ነቲ ዝመረጾ ፓኬጅ ናብቲ ሰርቨር ዝፈልጦ ቋንቋ (String) ንቕይሮ
     let pkgTypeStr = "1_month";
     if (paymentType === "regular") {
       if (selectedPkgPrice === 100) pkgTypeStr = "1_week";
@@ -226,14 +252,13 @@ export default function SellScreen() {
     } else {
       if (selectedPkgPrice === 3000) pkgTypeStr = "1_month";
       else if (selectedPkgPrice === 8000) pkgTypeStr = "3_months";
-      else pkgTypeStr = "1_week"; // ንመደበኛ Pro
+      else pkgTypeStr = "1_week";
     }
 
     try {
-      setIsSubmitting(true); // ሎዲንግ ንምጅማር
+      setIsSubmitting(true);
       const myId = user?._id || user?.id || "";
 
-      // 🚀 1. ናብ ሰርቨርካ ትእዛዝ ክፍሊት ይሰድድ
       const response = await fetch(`${API_BASE_URL}/api/payment/init`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -251,17 +276,12 @@ export default function SellScreen() {
 
       if (response.ok && data.paymentUrl) {
         setShowPaymentModal(false);
-
-        // 🚀 2. ብቐጥታ ናብ ናይ ባንኪ/Chapa መኽፈሊ ሊንክ ይወስዶ!
         Linking.openURL(data.paymentUrl);
-
         Alert.alert(
           "ክፍሊት ይጅምር ኣሎ...",
           "ናብ ናይ ባንኪ ፔጅ ንወስደኩም ኣለና። ክፍሊትኩም ምስ ወዳእኩም ናብ ኣፕሊኬሽን ተመለሱ።",
         );
 
-        // 💡 3. ክፍሊት ብትኽክል ከምዝተፈጸመ ጌርና ንግዚኡ ነቲ UI (ድኳን) ንኸፍተሉ (Optimistic Update)
-        // እቲ ናይ ሓቂ ምዝገባ ኣብ ዳታቤዝ በቲ Webhook (ሰርቨር) እዩ ዝግበር
         if (paymentType === "regular") {
           setHasActiveSubscription(true);
         } else if (paymentType === "advert_pro") {
@@ -298,6 +318,7 @@ export default function SellScreen() {
     }
 
     if (
+      !isAdminOrOwner && // 👈 💡 ማጂክ 2: ኣድሚን ወይ ዋና እንተዘይኮይኑ ጥራሕ ይሕተቶ
       isPaymentRequired &&
       !hasActiveSubscription &&
       adType === "market" &&
@@ -508,17 +529,37 @@ export default function SellScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* 💡 7.2 ሓዱሽ ማጂክ: ዳይናሚክ ሄደር (Dynamic Dynamic Banners) */}
-          {!isPaymentRequired ? (
-            /* 🟡 Free Mode (ብነጻ) */
+          {/* 👈 💡 ማጂክ 3: ኣድሚን እንተኾይኑ ንቡር ቢጫ ወይ ፍሉይ ቆጽሊ-ለማን (VIP) ባነር ይርአ */}
+          {!isPaymentRequired || isAdminOrOwner ? (
             <View
-              style={[styles.mainPromoCard, { backgroundColor: "#f1c40f" }]}
+              style={[
+                styles.mainPromoCard,
+                { backgroundColor: isAdminOrOwner ? "#2ecc71" : "#f1c40f" },
+              ]}
             >
-              <Text style={[styles.mainPromoTitle, { color: "#333" }]}>
-                <Ionicons name="gift" size={18} /> 🎉 ብነጻ ንብረትኩም ሽጡ!
+              <Text
+                style={[
+                  styles.mainPromoTitle,
+                  { color: isAdminOrOwner ? "#fff" : "#333" },
+                ]}
+              >
+                <Ionicons
+                  name={isAdminOrOwner ? "shield-checkmark" : "gift"}
+                  size={18}
+                />{" "}
+                {isAdminOrOwner
+                  ? "🎉 ቪኣይፒ (VIP) - ማዕጾ ኣድሚን"
+                  : "🎉 ብነጻ ንብረትኩም ሽጡ!"}
               </Text>
-              <Text style={[styles.mainPromoDesc, { color: "#555" }]}>
-                ንብረትኩም ብነጻ ኣምዚጊብኩም ቀልጢፍኩም ሽጡ። ክፍሊት ኣየድልየኩምን እዩ።
+              <Text
+                style={[
+                  styles.mainPromoDesc,
+                  { color: isAdminOrOwner ? "#f0f0f0" : "#555" },
+                ]}
+              >
+                {isAdminOrOwner
+                  ? "ኣድሚን ወይ ዋና ስለዝኾንኩም፡ ዝኾነ ክፍሊት ከይከፈልኩም ብነጻ ክትልጥፉ ትኽእሉ ኢኹም።"
+                  : "ንብረትኩም ብነጻ ኣምዚጊብኩም ቀልጢፍኩም ሽጡ። ክፍሊት ኣየድልየኩምን እዩ።"}
               </Text>
             </View>
           ) : isPaymentRequired && hasActiveSubscription ? (
@@ -530,7 +571,7 @@ export default function SellScreen() {
               </Text>
             </View>
           ) : (
-            /* 🔵 Require Subscription (ክፍሊት ዝደሊ) */
+            /* 🔵 Require Subscription (ክፍሊት ዝደሊ ንኻልኦት) */
             <View style={styles.bluePromoCard}>
               <Text style={styles.bluePromoTitle}>
                 <Ionicons name="storefront" size={18} /> ድኳን ተኻረዩ (Premium
@@ -988,10 +1029,11 @@ export default function SellScreen() {
             </View>
           )}
 
-          {/* Submit Button */}
+          {/* 👈 💡 ማጂክ 4: ኣድሚን እንተኾይኑ ንቡር ናይ "Post Ad" በተን ይመጽእ (ኣይክላከልን) */}
           <TouchableOpacity
             style={[
               styles.submitBtn,
+              !isAdminOrOwner &&
               isPaymentRequired &&
               !hasActiveSubscription &&
               adType === "market" &&
@@ -1006,7 +1048,8 @@ export default function SellScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={styles.submitBtnText}>
-                {isPaymentRequired &&
+                {!isAdminOrOwner &&
+                isPaymentRequired &&
                 !hasActiveSubscription &&
                 adType === "market" &&
                 !isPro ? (
@@ -1683,14 +1726,15 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    padding: 20,
-    maxHeight: "80%",
+    width: "80%",
+    borderRadius: 10,
+    padding: 10,
+    maxHeight: "70%",
   },
   modalHeader: {
     flexDirection: "row",
